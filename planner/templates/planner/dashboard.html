@@ -1,0 +1,216 @@
+<!-- planner/templates/planner/dashboard.html -->
+{% extends 'planner/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="pt-20 pb-16 min-h-screen bg-gradient-to-b from-green-50 to-white">
+    <div class="container mx-auto px-4">
+        <!-- Welcome Header with Beautiful Design -->
+        <div class="text-center mb-12">
+            <div class="inline-block p-3 bg-green-100 rounded-full mb-4">
+                <span class="text-3xl">👋</span>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-display font-bold text-green-800 mb-4">
+                Welcome back, {{ user.username }}!
+            </h1>
+            <p class="text-xl text-green-600 max-w-3xl mx-auto">
+                Here's your farming dashboard with all your saved calculations and insights.
+            </p>
+        </div>
+        <!-- Add this section to your dashboard -->
+<div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+    <h2 class="text-2xl font-semibold text-primary-green mb-4">🗺️ Your Farm Locations</h2>
+    
+    {% if user_farms %}
+    <div class="grid md:grid-cols-2 gap-4">
+        {% for farm in user_farms %}
+        <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+            <h3 class="font-semibold text-green-800">{{ farm.name }}</h3>
+            <p class="text-sm text-green-600">{{ farm.address }}</p>
+            <p class="text-xs text-gray-500">📍 {{ farm.latitude }}, {{ farm.longitude }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-gray-500 text-center py-4">No farm locations saved yet.</p>
+    <a href="{% url 'planner:maps' %}" class="bg-primary-green text-white px-4 py-2 rounded-lg inline-block">
+        Add Farm Location
+    </a>
+    {% endif %}
+</div>
+        
+        <!-- Add this to your dashboard -->
+<div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+    <h3 class="text-xl font-semibold text-primary-green mb-4">🗺️ Field Locations</h3>
+    <div id="farm-map" style="height: 300px; border-radius: 12px;"></div>
+    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="p-3 bg-blue-50 rounded-lg">
+            <span class="font-semibold">Region:</span> Mashonaland
+        </div>
+        <div class="p-3 bg-green-50 rounded-lg">
+            <span class="font-semibold">Soil Type:</span> Loamy
+        </div>
+    </div>
+</div>
+
+        <!-- Stats Overview - Enhanced Design -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div class="bg-white rounded-2xl shadow-lg p-6 text-center border border-green-100 hover:shadow-xl transition duration-300">
+                <div class="text-3xl font-bold text-green-600 mb-2">{{ calculations.count }}</div>
+                <p class="text-gray-600">Saved Calculations</p>
+                <div class="mt-2 text-2xl">📊</div>
+            </div>
+            
+            <div class="bg-white rounded-2xl shadow-lg p-6 text-center border border-green-100 hover:shadow-xl transition duration-300">
+                <div class="text-3xl font-bold text-green-600 mb-2">
+                    {{ total_area|floatformat:2 }} ha
+                </div>
+                <p class="text-gray-600">Total Farm Area</p>
+                <div class="mt-2 text-2xl">🌾</div>
+            </div>
+            
+            <div class="bg-white rounded-2xl shadow-lg p-6 text-center border border-green-100 hover:shadow-xl transition duration-300">
+                <div class="text-3xl font-bold text-green-600 mb-2">
+                    {{ most_common_crop|default:"None" }}
+                </div>
+                <p class="text-gray-600">Most Planned Crop</p>
+                <div class="mt-2 text-2xl">🏆</div>
+            </div>
+        </div>
+
+        <!-- Calculations List - Enhanced Design -->
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-green-100">
+            <div class="px-6 py-4 bg-green-50 border-b border-green-100">
+                <h2 class="text-2xl font-display font-semibold text-green-800 flex items-center">
+                    <span class="mr-2">📋</span> Your Saved Calculations
+                </h2>
+            </div>
+            
+            {% if calculations %}
+            <div class="divide-y divide-green-100">
+                {% for calculation in calculations %}
+                <div class="p-6 hover:bg-green-50 transition duration-200">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                        <div class="flex-1">
+                            <h3 class="text-xl font-semibold text-green-700 mb-2 flex items-center">
+                                <span class="mr-2">🌱</span> {{ calculation.crop.name }} Planning
+                            </h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
+                                <div class="flex items-center">
+                                    <span class="font-semibold mr-2">📍</span> {{ calculation.area }} ha
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="font-semibold mr-2">🌍</span> {{ calculation.soil_type.name }}
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="font-semibold mr-2">📅</span> {{ calculation.created_at|date:"M d, Y" }}
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="font-semibold mr-2">☀️</span> {{ calculation.crop.planting_season }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Stats - Enhanced -->
+                    <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="bg-green-50 rounded-lg p-3 text-center border border-green-100">
+                            <div class="text-lg font-bold text-green-700">{{ calculation.seed_required }} kg</div>
+                            <div class="text-xs text-green-600">Seeds Needed</div>
+                        </div>
+                        <div class="bg-green-50 rounded-lg p-3 text-center border border-green-100">
+                            <div class="text-lg font-bold text-green-700">{{ calculation.fertilizer_required }} kg</div>
+                            <div class="text-xs text-green-600">Fertilizer</div>
+                        </div>
+                        <div class="bg-green-50 rounded-lg p-3 text-center border border-green-100">
+                            <div class="text-lg font-bold text-green-700">{{ calculation.water_required }} L</div>
+                            <div class="text-xs text-green-600">Water Needed</div>
+                        </div>
+                        <div class="bg-green-50 rounded-lg p-3 text-center border border-green-100">
+                            <div class="text-lg font-bold text-green-700">{{ calculation.crop.fertilizer_type }}</div>
+                            <div class="text-xs text-green-600">Fertilizer Type</div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="p-12 text-center">
+                <div class="text-6xl mb-4 text-green-300">🌱</div>
+                <h3 class="text-xl font-semibold text-green-600 mb-4">No calculations yet</h3>
+                <p class="text-green-500 mb-6">Start planning your farm to see your calculations here</p>
+                <a href="{% url 'planner:plan' %}" class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-semibold transition duration-300 inline-block transform hover:scale-105">
+                    Create Your First Plan
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Quick Actions - Enhanced -->
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-2xl shadow-lg p-6 border border-green-100">
+                <h3 class="text-xl font-semibold text-green-800 mb-4 flex items-center">
+                    <span class="mr-2">⚡</span> Quick Actions
+                </h3>
+                <div class="space-y-3">
+                    <a href="{% url 'planner:plan' %}" class="flex items-center p-3 bg-green-50 rounded-lg hover:bg-green-100 transition duration-300 border border-green-100">
+                        <span class="text-lg mr-3 text-green-600">➕</span>
+                        <span class="font-semibold text-green-700">Create New Calculation</span>
+                    </a>
+                    <a href="#" class="flex items-center p-3 bg-green-50 rounded-lg hover:bg-green-100 transition duration-300 border border-green-100">
+                        <span class="text-lg mr-3 text-green-600">📊</span>
+                        <span class="font-semibold text-green-700">View Analytics</span>
+                    </a>
+                    <a href="#" class="flex items-center p-3 bg-green-50 rounded-lg hover:bg-green-100 transition duration-300 border border-green-100">
+                        <span class="text-lg mr-3 text-green-600">📅</span>
+                        <span class="font-semibold text-green-700">Planting Calendar</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-lg p-6 border border-green-100">
+                <h3 class="text-xl font-semibold text-green-800 mb-4 flex items-center">
+                    <span class="mr-2">🕒</span> Recent Activity
+                </h3>
+                {% if recent_calculations %}
+                <div class="space-y-3">
+                    {% for calc in recent_calculations %}
+                    <div class="flex items-center p-3 bg-green-50 rounded-lg border border-green-100">
+                        <span class="text-lg mr-3 text-green-600">🌾</span>
+                        <div>
+                            <p class="font-semibold text-green-700">{{ calc.crop.name }} calculation</p>
+                            <p class="text-sm text-green-600">{{ calc.created_at|timesince }} ago</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-green-500 text-center py-8">No recent activity</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .font-display {
+        font-family: 'Playfair Display', serif;
+    }
+    
+    body {
+        background: linear-gradient(135deg, #f0fff4 0%, #ffffff 100%);
+    }
+    
+    .transition {
+        transition: all 0.3s ease;
+    }
+    
+    .transform {
+        transform: scale(1);
+    }
+    
+    .hover\:scale-105:hover {
+        transform: scale(1.05);
+    }
+</style>
+{% endblock %}

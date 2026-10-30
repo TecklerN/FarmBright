@@ -1,0 +1,5323 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>FarmBright - Agricultural Decision Support</title>
+
+
+    <!-- ===================================================== -->
+    <!-- TAILWIND -->
+    <!-- ===================================================== -->
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+
+    <!-- ===================================================== -->
+    <!-- GOOGLE FONTS -->
+    <!-- ===================================================== -->
+
+    <link rel="preconnect"
+          href="https://fonts.googleapis.com">
+
+    <link rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap"
+          rel="stylesheet">
+
+
+    <!-- ===================================================== -->
+    <!-- LEAFLET -->
+    <!-- ===================================================== -->
+
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="">
+
+
+    <!-- ===================================================== -->
+    <!-- ALPINE -->
+    <!-- ===================================================== -->
+
+    <script defer
+            src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+
+    <!-- ===================================================== -->
+    <!-- TAILWIND CONFIG -->
+    <!-- ===================================================== -->
+
+    <script>
+
+        tailwind.config = {
+
+            theme: {
+
+                extend: {
+
+                    colors: {
+
+                        "primary-green": "#2b6a3a",
+
+                        "dark-green": "#1a4d2a",
+
+                        "gold-accent": "#d4af37",
+
+                        "cream-bg": "#f8f5f0",
+
+                        "light-green": "#e8f5e9"
+
+                    },
+
+                    fontFamily: {
+
+                        display: [
+                            "Playfair Display",
+                            "serif"
+                        ],
+
+                        body: [
+                            "Montserrat",
+                            "sans-serif"
+                        ]
+
+                    }
+
+                }
+
+            }
+
+        };
+
+    </script>
+
+
+    <!-- ===================================================== -->
+    <!-- CUSTOM CSS -->
+    <!-- ===================================================== -->
+
+    <style>
+
+        body {
+
+            font-family: "Montserrat", sans-serif;
+
+            background:
+                #f8f5f0;
+
+        }
+
+
+        .display-font {
+
+            font-family:
+                "Playfair Display",
+                serif;
+
+        }
+
+#map {
+    height: 70vh;
+    min-height: 600px;
+    width: 100%;
+    border-radius: 16px;
+    overflow: hidden;
+    z-index: 1;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+        
+
+        .leaflet-popup-content {
+
+            font-family:
+                "Montserrat",
+                sans-serif;
+
+        }
+
+
+        .leaflet-control-layers {
+
+            font-family:
+                "Montserrat",
+                sans-serif;
+
+            font-size:
+                12px;
+
+        }
+
+
+        /*
+            Permanent agro-shop name.
+        */
+
+        .farmbright-shop-label {
+
+            background:
+                rgba(255,255,255,0.96);
+
+            border:
+                1px solid #2b6a3a;
+
+            border-radius:
+                6px;
+
+            color:
+                #1a4d2a;
+
+            font-family:
+                "Montserrat",
+                sans-serif;
+
+            font-size:
+                11px;
+
+            font-weight:
+                700;
+
+            padding:
+                3px 6px;
+
+            white-space:
+                nowrap;
+
+            box-shadow:
+                0 2px 5px rgba(0,0,0,0.25);
+
+        }
+
+
+        /*
+            Shop marker.
+        */
+
+        .farmbright-shop-marker {
+
+            background:
+                transparent;
+
+            border:
+                none;
+
+        }
+
+
+        /*
+            Cards.
+        */
+
+        .shop-card {
+
+            transition:
+                all 0.2s ease;
+
+        }
+
+
+        .shop-card:hover {
+
+            transform:
+                translateY(-2px);
+
+            box-shadow:
+                0 5px 15px rgba(0,0,0,0.08);
+
+        }
+
+
+        /*
+            Scrollable shop area.
+        */
+
+        #shop-list {
+
+            max-height:
+                650px;
+
+            overflow-y:
+                auto;
+
+        }
+
+
+        /*
+            Loading animation.
+        */
+
+        .spinner {
+
+            width:
+                22px;
+
+            height:
+                22px;
+
+            border:
+                3px solid #d9eadc;
+
+            border-top:
+                3px solid #2b6a3a;
+
+            border-radius:
+                50%;
+
+            animation:
+                spin 0.8s linear infinite;
+
+            display:
+                inline-block;
+
+        }
+
+
+        @keyframes spin {
+
+            to {
+
+                transform:
+                    rotate(360deg);
+
+            }
+
+        }
+
+
+        /*
+            Result boxes.
+        */
+
+        .result-card {
+
+            background:
+                white;
+
+            border-radius:
+                12px;
+
+            padding:
+                18px;
+
+            border:
+                1px solid #e5e7eb;
+
+        }
+
+
+        /*
+            Progress score.
+        */
+
+        .score-bar {
+
+            height:
+                12px;
+
+            border-radius:
+                999px;
+
+            background:
+                #e5e7eb;
+
+            overflow:
+                hidden;
+
+        }
+
+
+        .score-fill {
+
+            height:
+                100%;
+
+            background:
+                #2b6a3a;
+
+            border-radius:
+                999px;
+
+            transition:
+                width 0.5s ease;
+
+                /* CROP INFORMATION RESPONSIVE LAYOUT */
+
+.crop-info-grid {
+    display: grid;
+    grid-template-columns: repeat(
+        auto-fit,
+        minmax(min(100%, 280px), 1fr)
+    );
+    gap: 20px;
+    width: 100%;
+    align-items: stretch;
+}
+
+.crop-info-card {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
+}
+
+        }
+
+    </style>
+
+</head>
+
+
+<body class="bg-cream-bg text-gray-800">
+
+
+<!-- ========================================================= -->
+<!-- NAVIGATION -->
+<!-- ========================================================= -->
+
+<nav class="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
+
+    <div class="max-w-7xl mx-auto px-4 py-4">
+
+        <div class="flex items-center justify-between">
+
+            <a href="/"
+               class="text-2xl font-bold display-font text-primary-green">
+
+                Farm<span class="text-gold-accent">
+                    Bright
+                </span>
+
+            </a>
+
+
+            <div class="hidden md:flex items-center gap-8">
+
+                <a href="/"
+                   class="text-dark-green hover:text-gold-accent font-medium">
+
+                    Home
+
+                </a>
+
+
+                <a href="/plan/"
+                   class="text-primary-green font-semibold">
+
+                    Agricultural Planner
+
+                </a>
+
+            </div>
+
+
+            <div>
+
+                {% if user.is_authenticated %}
+
+                    <span class="text-sm text-gray-600 mr-3">
+
+                        Welcome,
+                        {{ user.username }}
+
+                    </span>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</nav>
+
+
+<!-- ========================================================= -->
+<!-- MAIN -->
+<!-- ========================================================= -->
+
+<main class="pt-28 pb-16">
+
+
+    <div class="max-w-7xl mx-auto px-4">
+
+
+        <!-- ================================================= -->
+        <!-- PAGE HEADER -->
+        <!-- ================================================= -->
+
+        <section class="mb-8">
+
+            <div class="bg-gradient-to-r
+                        from-primary-green
+                        to-dark-green
+                        rounded-2xl
+                        p-8
+                        text-white
+                        shadow-lg">
+
+                <p class="text-sm uppercase tracking-widest
+                          text-green-100 mb-2">
+
+                    FarmBright
+
+                </p>
+
+
+                <h1 class="display-font
+                           text-3xl
+                           md:text-4xl
+                           font-bold
+                           mb-3">
+
+                    Intelligent Agricultural Planner
+
+                </h1>
+
+
+                <p class="text-green-50 max-w-3xl">
+
+                    Get crop, soil, agro-ecological,
+                    weather and location-based agricultural
+                    information for your farm.
+
+                </p>
+
+            </div>
+
+        </section>
+
+        <!-- ================================================= -->
+        <!-- ASK FARMBRIGHT AI -->
+        <!-- ================================================= -->
+
+        <section class="mb-8">
+            <div class="bg-white rounded-2xl shadow-sm
+                        border border-green-200 p-6">
+
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-full
+                                bg-light-green flex items-center
+                                justify-center text-2xl">
+                        🤖
+                    </div>
+
+                    <div>
+                        <h2 class="text-2xl font-bold text-dark-green">
+                            Ask FarmBright
+                        </h2>
+
+                        <p class="text-sm text-gray-500">
+                            Ask your farming question in natural language.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex flex-col md:flex-row gap-3">
+
+    <select
+        id="farmbright-language"
+        class="border border-gray-300 rounded-lg px-3 py-3">
+        <option value="en">English</option>
+        <option value="sn">Shona</option>
+    </select>
+
+    <input
+        id="farmbright-question"
+        type="text"
+        placeholder="e.g. Which small grain should I plant?"
+        class="flex-1 border border-gray-300
+               rounded-lg px-4 py-3
+               focus:ring-2
+               focus:ring-primary-green
+               focus:border-primary-green"
+    >
+
+    <button
+        type="button"
+        onclick="startVocalBridge()"
+        class="bg-green-600
+               hover:bg-green-700
+               text-white
+               px-4 py-3
+               rounded-lg
+               font-semibold">
+        🎤 Speak
+    </button>
+
+    <button
+        type="button"
+        onclick="askFarmBright()"
+        class="bg-primary-green
+               hover:bg-dark-green
+               text-white
+               px-6 py-3
+               rounded-lg
+               font-semibold">
+        🤖 Ask FarmBright
+    </button>
+
+</div>
+
+               
+
+                <!-- QUICK QUESTIONS -->
+
+                <div class="flex flex-wrap gap-2 mt-4">
+
+                    <button
+                        type="button"
+                        onclick="setFarmBrightQuestion('Which small grain should I plant?')"
+                        class="text-sm bg-green-50
+                               text-primary-green
+                               border border-green-200
+                               px-3 py-2 rounded-lg
+                               hover:bg-green-100">
+
+                        🌾 Crop recommendation
+                    </button>
+
+                    <button
+                        type="button"
+                        onclick="setFarmBrightQuestion('What seed should I use for sorghum?')"
+                        class="text-sm bg-green-50
+                               text-primary-green
+                               border border-green-200
+                               px-3 py-2 rounded-lg
+                               hover:bg-green-100">
+
+                        🌱 Seed advice
+                    </button>
+
+                    <button
+                        type="button"
+                        onclick="setFarmBrightQuestion('How much fertilizer do I need for 2 hectares of sorghum?')"
+                        class="text-sm bg-green-50
+                               text-primary-green
+                               border border-green-200
+                               px-3 py-2 rounded-lg
+                               hover:bg-green-100">
+
+                        🧪 Fertilizer
+                    </button>
+
+                    <button
+                        type="button"
+                        onclick="setFarmBrightQuestion('When should I plant pearl millet?')"
+                        class="text-sm bg-green-50
+                               text-primary-green
+                               border border-green-200
+                               px-3 py-2 rounded-lg
+                               hover:bg-green-100">
+
+                        📅 Planting time
+                    </button>
+
+                </div>
+
+                <!-- AI RESULT -->
+
+                <div
+                    id="farmbright-ai-result"
+                    class="hidden mt-5
+                           bg-green-50
+                           border border-green-200
+                           rounded-xl p-5">
+
+                    <div class="flex items-center justify-between mb-3">
+
+                        <h3 class="font-bold text-dark-green">
+                            🧠 FarmBright Understanding
+                        </h3>
+
+                        
+
+                    </div>
+
+                    <p
+                        id="farmbright-response"
+                        class="text-gray-700 mb-4">
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+
+                        <div class="bg-white rounded-lg p-3">
+                            <p class="text-xs text-gray-500">
+                                Detected Intent
+                            </p>
+
+                            <p
+                                id="farmbright-intent"
+                                class="font-semibold text-dark-green">
+                            </p>
+                        </div>
+
+                        <div class="bg-white rounded-lg p-3">
+                            <p class="text-xs text-gray-500">
+                                Crop
+                            </p>
+
+                            <p
+                                id="farmbright-crop"
+                                class="font-semibold text-dark-green">
+                            </p>
+                        </div>
+
+                        <div class="bg-white rounded-lg p-3">
+                            <p class="text-xs text-gray-500">
+                                Farm Area
+                            </p>
+
+                            <p
+                                id="farmbright-area"
+                                class="font-semibold text-dark-green">
+                            </p>
+                        </div>
+                        <div class="bg-white rounded-lg p-3">
+                           <p class="text-xs text-gray-500">
+                                Location
+                            </p>
+
+                           <p
+                                 id="farmbright-location"
+                             class="font-semibold text-dark-green">
+                             </p>
+                      </div>
+                    </div>
+
+                    <p
+                        class="text-xs text-gray-500 mt-4">
+                        FarmBright uses NLP to understand the farmer's
+                        question before passing structured information
+                        to the agricultural decision-support system.
+                    </p>
+
+                </div>
+
+                <!-- ERROR -->
+
+                <div
+                    id="farmbright-ai-error"
+                    class="hidden mt-4
+                           bg-red-50
+                           border border-red-200
+                           text-red-700
+                           rounded-lg p-4">
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- ================================================= -->
+        <!-- CALCULATOR -->
+        <!-- ================================================= -->
+        <!-- ================================================= -->
+        <!-- CALCULATOR -->
+        <!-- ================================================= -->
+
+        <section
+            x-data="calculator()"
+            class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+
+            <!-- ============================================= -->
+            <!-- LEFT: INPUTS -->
+            <!-- ============================================= -->
+
+            <div class="lg:col-span-1">
+
+                <div class="bg-white rounded-2xl shadow-sm
+                            border border-gray-200 p-6">
+
+                    <h2 class="text-xl font-bold text-dark-green mb-6">
+
+                        Farm Information
+
+                    </h2>
+
+
+                    <!-- CROP -->
+
+                    <div class="mb-5">
+
+                        <label class="block text-sm font-semibold
+                                      text-gray-700 mb-2">
+
+                            Crop Type
+
+                        </label>
+
+
+                        <select
+                            x-model="form.crop"
+                            @change="onInputChanged()"
+                            class="w-full border border-gray-300
+                                   rounded-lg px-4 py-3
+                                   focus:ring-2
+                                   focus:ring-primary-green
+                                   focus:border-primary-green">
+
+                            <option value="">
+
+                                Select crop
+
+                            </option>
+
+                            <option value="sorghum">
+
+                                Sorghum
+
+                            </option>
+
+                            <option value="pearl_millet">
+
+                                Pearl Millet
+
+                            </option>
+
+                            <option value="finger_millet">
+
+                                Finger Millet
+
+                            </option>
+
+                            <option value="rapoko">
+
+                                Rapoko
+
+                            </option>
+
+                            <option value="wheat">
+
+                                Wheat
+
+                            </option>
+
+                            <option value="maize">
+
+                                Maize
+
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- AREA -->
+
+                    <div class="mb-5">
+
+                        <label class="block text-sm font-semibold
+                                      text-gray-700 mb-2">
+
+                            Field Area (hectares)
+
+                        </label>
+
+
+                        <input
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            x-model.number="form.area"
+                            placeholder="e.g. 2.5"
+                            class="w-full border border-gray-300
+                                   rounded-lg px-4 py-3
+                                   focus:ring-2
+                                   focus:ring-primary-green">
+
+                    </div>
+
+
+                    <!-- SOIL -->
+
+                    <div class="mb-5">
+
+                        <label class="block text-sm font-semibold
+                                      text-gray-700 mb-2">
+
+                            Soil Type
+
+                        </label>
+
+
+                        <select
+                            x-model="form.soil"
+                            @change="onInputChanged()"
+                            class="w-full border border-gray-300
+                                   rounded-lg px-4 py-3
+                                   focus:ring-2
+                                   focus:ring-primary-green">
+
+                            <option value="">
+
+                                Select soil type
+
+                            </option>
+
+                            <option value="clay">
+
+                                Clay
+
+                            </option>
+
+                            <option value="sandy">
+
+                                Sandy
+
+                            </option>
+
+                            <option value="loam">
+
+                                Loam
+
+                            </option>
+
+                            <option value="sandy_loam">
+
+                                Sandy Loam
+
+                            </option>
+
+                            <option value="clay_loam">
+
+                                Clay Loam
+
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- REGION -->
+
+                    <div class="mb-5">
+
+                        <label class="block text-sm font-semibold
+                                      text-gray-700 mb-2">
+
+                            Zimbabwe Region
+
+                        </label>
+
+
+                        <select
+                            x-model="form.region"
+                            @change="onInputChanged()"
+                            class="w-full border border-gray-300
+                                   rounded-lg px-4 py-3
+                                   focus:ring-2
+                                   focus:ring-primary-green">
+
+                            <option value="">
+
+                                Select region
+
+                            </option>
+
+                            <option value="Harare">
+
+                                Harare
+
+                            </option>
+
+                            <option value="Masvingo">
+
+                                Masvingo
+
+                            </option>
+
+                            <option value="Midlands">
+
+                                Midlands
+
+                            </option>
+
+                            <option value="Manicaland">
+
+                                Manicaland
+
+                            </option>
+
+                            <option value="Mashonaland East">
+
+                                Mashonaland East
+
+                            </option>
+
+                            <option value="Mashonaland West">
+
+                                Mashonaland West
+
+                            </option>
+
+                            <option value="Mashonaland Central">
+
+                                Mashonaland Central
+
+                            </option>
+
+                            <option value="Matabeleland North">
+
+                                Matabeleland North
+
+                            </option>
+
+                            <option value="Matabeleland South">
+
+                                Matabeleland South
+
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- CALCULATE -->
+
+                    <button
+                        type="button"
+                        @click="calculate()"
+                        class="w-full bg-primary-green
+                               hover:bg-dark-green
+                               text-white
+                               font-semibold
+                               py-3
+                               rounded-lg
+                               transition">
+
+                        🌾 Calculate Farm Plan
+
+                    </button>
+
+
+                    <!-- SAVE LOCATION -->
+
+                    <button
+                        type="button"
+                        onclick="saveLocation()"
+                        class="w-full mt-3
+                               border border-primary-green
+                               text-primary-green
+                               hover:bg-light-green
+                               font-semibold
+                               py-3
+                               rounded-lg">
+
+                        📍 Save Field Location
+
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- ============================================= -->
+            <!-- RIGHT: RESULTS -->
+            <!-- ============================================= -->
+
+            <div class="lg:col-span-2 space-y-6">
+
+
+                <!-- ========================================= -->
+                <!-- CALCULATION RESULTS -->
+                <!-- ========================================= -->
+
+                <div class="bg-white rounded-2xl shadow-sm
+                            border border-gray-200 p-6">
+
+                    <div class="flex items-center justify-between mb-5">
+
+                        <h2 class="text-xl font-bold text-dark-green">
+
+                            Farm Recommendation
+
+                        </h2>
+
+
+                        <span
+                            x-show="calculated"
+                            class="text-sm bg-light-green
+                                   text-dark-green px-3 py-1
+                                   rounded-full">
+
+                            Calculated
+
+                        </span>
+
+                    </div>
+
+
+                    <div
+                        x-show="!calculated"
+                        class="text-center py-10 text-gray-500">
+
+                        <div class="text-4xl mb-3">
+
+                            🌱
+
+                        </div>
+
+                        <p>
+
+                            Enter your farm information
+                            and calculate your plan.
+
+                        </p>
+
+                    </div>
+
+
+                    <div
+                        x-show="calculated"
+                        x-cloak>
+
+
+                        <!-- RESULTS GRID -->
+
+<!-- DETAILED CALCULATION RESULTS -->
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+    <div class="result-card">
+        <p class="text-sm text-gray-500">Seed Required</p>
+        <p class="text-xl font-bold text-primary-green"
+           x-text="results.seed"></p>
+    </div>
+
+    <div class="result-card">
+        <p class="text-sm text-gray-500">Recommended Seed Type</p>
+        <p class="font-bold text-dark-green"
+           x-text="results.seedType"></p>
+    </div>
+
+    <div class="result-card">
+        <p class="text-sm text-gray-500">Fertilizer Type</p>
+        <p class="font-bold text-dark-green"
+           x-text="results.fertilizerType"></p>
+    </div>
+
+    <div class="result-card">
+        <p class="text-sm text-gray-500">Fertilizer Required</p>
+        <p class="text-xl font-bold text-primary-green"
+           x-text="results.fertilizer"></p>
+    </div>
+
+    <div class="result-card">
+        <p class="text-sm text-gray-500">Seasonal Water Demand</p>
+        <p class="font-bold text-dark-green"
+           x-text="results.waterSeason"></p>
+    </div>
+
+    <div class="result-card">
+        <p class="text-sm text-gray-500">Average Daily Water Demand</p>
+        <p class="font-bold text-dark-green"
+           x-text="results.waterDaily"></p>
+        <p class="text-xs text-gray-500 mt-2">
+            Water estimates are not daily irrigation prescriptions.
+            Actual irrigation depends on rainfall and crop growth stage.
+        </p>
+    </div>
+
+    <div class="result-card">
+        <p class="text-sm text-gray-500">Planting Season</p>
+        <p class="font-bold text-dark-green"
+           x-text="results.season"></p>
+    </div>
+
+</div>
+
+
+
+                        <!-- SUITABILITY -->
+
+                        <div class="mt-6">
+
+                            <div class="flex justify-between mb-2">
+
+                                <span class="font-semibold">
+
+                                    Crop Suitability
+
+                                </span>
+
+                                <span
+                                    class="font-bold text-primary-green"
+                                    x-text="results.score + '%'">
+
+                                </span>
+
+                            </div>
+
+
+                            <div class="score-bar">
+
+                                <div
+                                    class="score-fill"
+                                    :style="'width:' + results.score + '%'">
+
+                                </div>
+
+                            </div>
+
+
+                            <p
+                                class="text-sm text-gray-600 mt-3"
+                                x-text="results.message">
+
+                            </p>
+
+                        </div>
+
+
+                        <!-- RECOMMENDATION -->
+
+                        <div class="mt-6
+                                    bg-light-green
+                                    border border-green-200
+                                    rounded-xl
+                                    p-5">
+
+                            <h3 class="font-bold
+                                       text-dark-green mb-2">
+
+                                🌱 FarmBright Recommendation
+
+                            </h3>
+
+
+                            <p
+                                class="text-gray-700"
+                                x-text="results.recommendation">
+
+                            </p>
+
+                        </div>
+
+
+                        <!-- SEEDS -->
+
+                        <div class="mt-6">
+
+                            <h3 class="font-bold
+                                       text-dark-green mb-3">
+
+                                Recommended Seed Varieties
+
+                            </h3>
+
+
+                            <div class="flex flex-wrap gap-2">
+
+                                <template
+                                    x-for="seed in results.varieties"
+                                    :key="seed">
+
+                                    <span
+                                        class="bg-green-50
+                                               text-primary-green
+                                               border border-green-200
+                                               px-3 py-2
+                                               rounded-lg
+                                               text-sm font-medium">
+
+                                        🌾
+                                        <span
+                                            x-text="seed">
+                                        </span>
+
+                                    </span>
+
+                                </template>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ========================================= -->
+                <!-- GIS CONTEXT -->
+                <!-- ========================================= -->
+
+                <div class="bg-white rounded-2xl shadow-sm
+                            border border-gray-200 p-6">
+
+                    <div class="flex items-center justify-between">
+
+                        <div>
+
+                            <h2 class="text-xl font-bold
+                                       text-dark-green">
+
+                                📊 GIS Agricultural Context
+
+                            </h2>
+
+                            <p class="text-sm text-gray-500 mt-1">
+
+                                FarmBright identifies the soil
+                                and agro-ecological zone at
+                                your selected location.
+
+                            </p>
+
+                        </div>
+
+                        <span
+                            id="gis-loading"
+                            class="hidden">
+
+                            <span class="spinner"></span>
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="grid grid-cols-1
+                                md:grid-cols-2
+                                gap-4 mt-5">
+
+
+                        <div class="bg-gray-50
+                                    rounded-xl p-4">
+
+                            <p class="text-xs uppercase
+                                      tracking-wide
+                                      text-gray-500">
+
+                                Soil Type / Sub-family
+
+                            </p>
+
+                            <p
+                                id="gis-soil"
+                                class="font-bold text-dark-green mt-1">
+
+                                Waiting for location...
+
+                            </p>
+
+                        </div>
+
+
+                        <div class="bg-gray-50
+                                    rounded-xl p-4">
+
+                            <p class="text-xs uppercase
+                                      tracking-wide
+                                      text-gray-500">
+
+                                Agro-Ecological Zone
+
+                            </p>
+
+                            <p
+                                id="gis-zone"
+                                class="font-bold text-dark-green mt-1">
+
+                                Waiting for location...
+
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="mt-4
+                                bg-blue-50
+                                border border-blue-200
+                                rounded-xl p-4">
+
+                        <p class="text-sm text-blue-800">
+
+                            <strong>📍 Selected location:</strong>
+
+                            <span id="location-text">
+
+                                Loading...
+
+                            </span>
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ========================================= -->
+                <!-- WEATHER -->
+                <!-- ========================================= -->
+
+                <div class="bg-white rounded-2xl shadow-sm
+                            border border-gray-200 p-6">
+
+                    <h2 class="text-xl font-bold
+                               text-dark-green mb-5">
+
+                        🌤️ Local Weather
+
+                    </h2>
+
+
+                    <div class="grid grid-cols-2
+                                md:grid-cols-4 gap-4">
+
+
+                        <div class="result-card">
+
+                            <p class="text-xs text-gray-500">
+
+                                Temperature
+
+                            </p>
+
+                            <p
+                                id="weather-temp"
+                                class="text-xl font-bold
+                                       text-dark-green">
+
+                                --
+
+                            </p>
+
+                        </div>
+
+
+                        <div class="result-card">
+
+                            <p class="text-xs text-gray-500">
+
+                                Condition
+
+                            </p>
+
+                            <p
+                                id="weather-condition"
+                                class="font-semibold
+                                       text-dark-green">
+
+                                --
+
+                            </p>
+
+                        </div>
+
+
+                        <div class="result-card">
+
+                            <p class="text-xs text-gray-500">
+
+                                Rain
+
+                            </p>
+
+                            <p
+                                id="weather-rain"
+                                class="text-xl font-bold
+                                       text-dark-green">
+
+                                --
+
+                            </p>
+
+                        </div>
+
+
+                        <div class="result-card">
+
+                            <p class="text-xs text-gray-500">
+
+                                Humidity
+
+                            </p>
+
+                            <p
+                                id="weather-humidity"
+                                class="text-xl font-bold
+                                       text-dark-green">
+
+                                --
+
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        id="weather-advice"
+                        class="mt-4
+                               bg-gray-50
+                               rounded-lg
+                               p-4
+                               text-sm">
+
+                        Weather information will appear here.
+
+                    </div>
+
+
+                    <div
+                        id="planting-decision"
+                        class="mt-3
+                               bg-light-green
+                               rounded-lg
+                               p-4
+                               text-sm
+                               font-medium">
+
+                        Weather-based guidance will appear here.
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================================================= -->
+        <!-- MAP -->
+        <!-- ================================================= -->
+
+        <section class="mt-8">
+
+            <div class="bg-white rounded-2xl shadow-sm
+                        border border-gray-200 p-6">
+
+
+                <div class="flex flex-col
+                            md:flex-row
+                            md:items-center
+                            md:justify-between
+                            gap-4 mb-5">
+
+                    <div>
+
+                        <h2 class="text-2xl font-bold
+                                   text-dark-green">
+
+                            🗺️ Farm Location & Agro-Dealers
+
+                        </h2>
+
+                        <p class="text-sm text-gray-500 mt-1">
+
+                            Select your field location.
+                            FarmBright will identify the
+                            surrounding agricultural context
+                            and nearby mapped suppliers.
+
+                        </p>
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        onclick="useCurrentLocation()"
+                        class="bg-primary-green
+                               hover:bg-dark-green
+                               text-white
+                               px-4 py-2
+                               rounded-lg
+                               font-semibold">
+
+                        📍 Use My Location
+
+                    </button>
+
+                </div>
+
+
+                <!-- SEARCH LOCATION -->
+
+                <div class="flex flex-col
+                            md:flex-row
+                            gap-3 mb-5">
+
+
+                    <input
+                        id="location-search"
+                        type="text"
+                        placeholder="Search a place, city or address..."
+                        class="flex-1 border border-gray-300
+                               rounded-lg px-4 py-3
+                               focus:ring-2
+                               focus:ring-primary-green">
+
+
+                    <button
+                        type="button"
+                        onclick="searchLocation()"
+                        class="bg-dark-green
+                               text-white
+                               px-5 py-3
+                               rounded-lg
+                               font-semibold">
+
+                        🔎 Search
+
+                    </button>
+
+                </div>
+
+
+                <!-- MAP -->
+
+                <div id="map"
+                     class="mb-4">
+
+                </div>
+
+
+                <!-- MAP GUIDE -->
+
+                <div class="mb-6
+                            bg-blue-50
+                            border border-blue-200
+                            rounded-lg
+                            p-4
+                            text-sm
+                            text-blue-800">
+
+                    <strong>🗺️ Map guide:</strong>
+
+                    Satellite imagery is combined with
+                    road and place-name layers.
+
+                    <strong>🏪</strong>
+
+                    markers represent mapped agricultural
+                    suppliers.
+
+                    Click a shop marker to view its details.
+
+                    <br><br>
+
+                    <strong>Important:</strong>
+
+                    Public map data does not guarantee
+                    current seed stock.
+
+                </div>
+
+
+                <!-- LOCATION DETAILS -->
+
+                <div class="grid grid-cols-1
+                            md:grid-cols-3
+                            gap-4 mb-6">
+
+
+                    <div class="bg-gray-50
+                                rounded-xl p-4">
+
+                        <p class="text-xs text-gray-500">
+
+                            Latitude
+
+                        </p>
+
+                        <p
+                            id="latitude-display"
+                            class="font-bold
+                                   text-dark-green">
+
+                            --
+
+                        </p>
+
+                    </div>
+
+
+                    <div class="bg-gray-50
+                                rounded-xl p-4">
+
+                        <p class="text-xs text-gray-500">
+
+                            Longitude
+
+                        </p>
+
+                        <p
+                            id="longitude-display"
+                            class="font-bold
+                                   text-dark-green">
+
+                            --
+
+                        </p>
+
+                    </div>
+
+
+                    <div class="bg-gray-50
+                                rounded-xl p-4">
+
+                        <p class="text-xs text-gray-500">
+
+                            Address
+
+                        </p>
+
+                        <p
+                            id="address-display"
+                            class="font-semibold
+                                   text-dark-green">
+
+                            --
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ================================================= -->
+                <!-- AGRO SHOPS -->
+                <!-- ================================================= -->
+
+                <div>
+
+                    <div class="flex flex-col
+                                md:flex-row
+                                md:items-center
+                                md:justify-between
+                                gap-3 mb-4">
+
+
+                        <div>
+
+                            <h3 class="text-xl font-bold
+                                       text-dark-green">
+
+                                🏪 Nearby Agro-Dealers
+
+                            </h3>
+
+                            <p class="text-sm text-gray-500">
+
+                                Mapped agricultural suppliers
+                                within approximately 50 km.
+
+                            </p>
+
+                        </div>
+
+
+                        <button
+                            type="button"
+                            onclick="refreshNearbyShops()"
+                            class="border border-primary-green
+                                   text-primary-green
+                                   hover:bg-light-green
+                                   px-4 py-2
+                                   rounded-lg
+                                   font-semibold">
+
+                            🔄 Refresh Shops
+
+                        </button>
+
+                    </div>
+
+
+                    <!-- SHOP LIST -->
+
+                    <div id="shop-list">
+
+                        <div class="bg-gray-50
+                                    rounded-xl
+                                    p-6
+                                    text-center
+                                    text-gray-500">
+
+                            Select a field location
+                            to search for nearby
+                            agricultural suppliers.
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================================================= -->
+        <!-- CROP INFORMATION -->
+        <!-- ================================================= -->
+
+        <section class="mt-8">
+
+            <div class="bg-white rounded-2xl shadow-sm
+                        border border-gray-200 p-6">
+
+
+                <h2 class="text-2xl font-bold
+                           text-dark-green mb-5">
+
+                    🌾 Crop Information
+
+                </h2>
+
+
+                <div class="crop-info-grid"></div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+    <!-- SORGHUM -->
+    <div class="bg-light-green rounded-xl p-5">
+
+        <h3 class="font-bold text-dark-green text-lg">
+            🌾 Sorghum
+        </h3>
+
+        <p class="text-xs text-green-800 font-semibold mt-2">
+            Scientific name: Sorghum bicolor
+        </p>
+
+        <p class="text-sm text-gray-700 mt-3">
+            Sorghum is an important small-grain cereal
+            valued for its ability to tolerate high
+            temperatures and periods of limited rainfall.
+            Its deep root system and ability to slow growth
+            during dry conditions help it survive challenging
+            growing environments.
+        </p>
+
+        <h4 class="font-semibold text-dark-green mt-4">
+            Common uses
+        </h4>
+
+        <p class="text-sm text-gray-700 mt-1">
+            The grain is processed into flour and traditional
+            foods such as sadza and porridge. It is also used
+            in beverages and livestock feed.
+        </p>
+
+        <h4 class="font-semibold text-dark-green mt-4">
+            Farming consideration
+        </h4>
+
+        <p class="text-sm text-gray-700 mt-1">
+            Farmers should select varieties suited to their
+            agro-ecological region, maturity requirements
+            and intended grain use.
+        </p>
+
+    </div>
+
+
+    <!-- PEARL MILLET -->
+    <div class="bg-light-green rounded-xl p-5">
+
+        <h3 class="font-bold text-dark-green text-lg">
+            🌱 Pearl Millet
+        </h3>
+
+        <p class="text-xs text-green-800 font-semibold mt-2">
+            Scientific name: Pennisetum glaucum
+        </p>
+
+        <p class="text-sm text-gray-700 mt-3">
+            Pearl millet is a hardy cereal particularly
+            valuable in hot, dry farming environments.
+            It is highly tolerant of drought and can cope
+            with mid-season dry spells better than many
+            other cereal crops.
+        </p>
+
+        <h4 class="font-semibold text-dark-green mt-4">
+            Common uses
+        </h4>
+
+        <p class="text-sm text-gray-700 mt-1">
+            Its grain is processed into meal, flour and
+            porridge. It contributes to household food
+            security and can be stored for extended periods
+            when properly dried and protected.
+        </p>
+
+        <h4 class="font-semibold text-dark-green mt-4">
+            Farming consideration
+        </h4>
+
+        <p class="text-sm text-gray-700 mt-1">
+            Pearl millet is particularly useful in areas
+            experiencing unreliable rainfall. Well-drained
+            soils and suitable locally adapted varieties
+            support successful production.
+        </p>
+
+    </div>
+
+
+    <!-- FINGER MILLET -->
+    <div class="bg-light-green rounded-xl p-5">
+
+        <h3 class="font-bold text-dark-green text-lg">
+            🌾 Finger Millet
+        </h3>
+
+        <p class="text-xs text-green-800 font-semibold mt-2">
+            Scientific name: Eleusine coracana
+        </p>
+
+        <p class="text-sm text-gray-700 mt-3">
+            Finger millet is a nutritious traditional
+            cereal cultivated for its small grains.
+            It is valued for its dietary fibre, iron and
+            calcium content and plays an important role
+            in traditional food systems.
+        </p>
+
+        <h4 class="font-semibold text-dark-green mt-4">
+            Common uses
+        </h4>
+
+        <p class="text-sm text-gray-700 mt-1">
+            The grain is processed into flour, porridge
+            and other traditional foods. Its good storage
+            potential also makes it valuable for household
+            food security.
+        </p>
+
+        <h4 class="font-semibold text-dark-green mt-4">
+            Farming consideration
+        </h4>
+
+        <p class="text-sm text-gray-700 mt-1">
+            Finger millet generally requires more water
+            than sorghum and pearl millet. It performs
+            best in fertile, well-drained soils with
+            appropriate moisture management.
+        </p>
+
+    </div>
+
+</div>
+
+                    
+
+            </div>
+
+        </section>
+
+    </div>
+
+</main>
+
+
+<!-- ========================================================= -->
+<!-- LEAFLET -->
+<!-- ========================================================= -->
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin="">
+</script>
+
+
+<script>
+
+/* ========================================================= */
+/* CONFIGURATION */
+/* ========================================================= */
+
+
+/*
+    OpenWeather API key supplied by Django settings.
+*/
+
+const WEATHER_API_KEY =
+    "{{ weather_api_key|escapejs }}";
+
+
+/*
+    Default location:
+    Harare.
+
+    The farmer can move this marker.
+*/
+
+let currentLocation = {
+
+    lat:
+        -17.8252,
+
+    lng:
+        31.0335,
+
+    address:
+        "Harare, Zimbabwe"
+
+};
+
+
+
+let locationConfirmed = false;
+let agriculturalContext = null;
+
+
+let map = null;
+
+let marker = null;
+
+let shopLayer = null;
+
+
+/* ========================================================= */
+/* CROP / SEED DATA */
+/* ========================================================= */
+
+
+/*
+    IMPORTANT:
+    These varieties are provisional frontend data.
+    They should later be replaced with verified
+    Zimbabwean seed/dealer data.
+*/
+
+const seedVarieties = {
+
+    sorghum: {
+
+        "Masvingo": [
+            "Macia",
+            "Sila"
+        ],
+
+        "Matabeleland North": [
+            "SV2",
+            "Kuyuma"
+        ],
+
+        "Matabeleland South": [
+            "Macia"
+        ],
+
+        "Midlands": [
+            "Sila"
+        ],
+
+        default: [
+            "Macia",
+            "Sila"
+        ]
+
+    },
+
+
+    pearl_millet: {
+
+        "Masvingo": [
+            "PMV3",
+            "Okashana 1"
+        ],
+
+        "Matabeleland South": [
+            "Kangara"
+        ],
+
+        "Matabeleland North": [
+            "Okashana 1"
+        ],
+
+        default: [
+            "PMV3",
+            "Okashana 1"
+        ]
+
+    },
+
+
+    finger_millet: {
+
+        default: [
+            "Improved Finger Millet",
+            "Local Finger Millet"
+        ]
+
+    },
+
+
+    rapoko: {
+
+        default: [
+            "Improved Rapoko",
+            "Local Rapoko"
+        ]
+
+    },
+
+
+    wheat: {
+
+        default: [
+            "Winter Wheat"
+        ]
+
+    },
+
+
+    maize: {
+
+        default: [
+            "Locally adapted maize varieties"
+        ]
+
+    }
+
+};
+
+
+/* ========================================================= */
+/* CALCULATOR */
+/* ========================================================= */
+
+function calculator() {
+
+    return {
+
+        calculated:
+            false,
+
+
+        form: {
+
+            crop:
+                "",
+
+            area:
+                1,
+
+            soil:
+                "",
+
+            region:
+                ""
+
+        },
+
+results: {
+    seed: "--",
+    seedType: "--",
+    fertilizerType: "--",
+    fertilizer: "--",
+    waterSeason: "--",
+    waterDaily: "--",
+    waterFieldDaily: "--",
+    waterFieldSeason: "--",
+    season: "--",
+    score: 0,
+    message: "",
+    recommendation: "",
+    varieties: []
+    
+},
+       
+
+        /*
+            Called whenever crop, soil or region changes.
+        */
+
+        onInputChanged() {
+
+            /*
+                If the user has already calculated,
+                update the result to reflect the new
+                selection.
+            */
+
+            if (
+                this.calculated
+            ) {
+
+                this.calculate();
+
+            }
+
+            /*
+                Refresh shop search because the
+                requested crop/varieties changed.
+            */
+
+            refreshNearbyShops();
+
+        },
+
+
+        /* ============================================= */
+        /* CALCULATE */
+        /* ============================================= */
+
+        
+calculate() {
+
+    const crop = this.form.crop;
+    const area = Number(this.form.area);
+
+    if (!crop) {
+        alert("Please select a crop.");
+        return;
+    }
+
+    if (!Number.isFinite(area) || area <= 0) {
+        alert("Please enter a valid field area.");
+        return;
+    }
+
+    // Existing prototype rates, in kg per hectare.
+    const seedRates = {
+        sorghum: 10,
+        pearl_millet: 5,
+        finger_millet: 8,
+        rapoko: 8,
+        wheat: 100,
+        maize: 25
+    };
+
+    const fertilizerRates = {
+        sorghum: 200,
+        pearl_millet: 150,
+        finger_millet: 150,
+        rapoko: 150,
+        wheat: 250,
+        maize: 250
+    };
+
+    const seedTypeLabels = {
+        sorghum: "Sorghum grain seed",
+        pearl_millet: "Pearl millet grain seed",
+        finger_millet: "Finger millet grain seed",
+        rapoko: "Rapoko grain seed",
+        wheat: "Wheat seed",
+        maize: "Maize seed"
+    };
+
+    const fertilizerTypes = {
+        sorghum: "Compound D — basal fertilizer",
+        pearl_millet: "Compound D — basal fertilizer",
+        finger_millet: "Basal compound fertilizer",
+        rapoko: "Basal compound fertilizer",
+        wheat: "Basal compound fertilizer",
+        maize: "Compound D — basal fertilizer"
+    };
+
+    const seasons = {
+        sorghum: "November–December",
+        pearl_millet: "November–December",
+        finger_millet: "November–December",
+        rapoko: "November–December",
+        wheat: "May–June / winter season",
+        maize: "November–December"
+    };
+
+    /*
+     * Indicative seasonal crop-water demand in mm.
+     * Growing-period lengths are prototype assumptions.
+     */
+    const waterNeeds = {
+        sorghum:      { lowMm: 450, highMm: 650, days: 120 },
+        pearl_millet: { lowMm: 450, highMm: 650, days: 90 },
+        finger_millet:{ lowMm: 450, highMm: 650, days: 135 },
+        rapoko:       { lowMm: 450, highMm: 650, days: 135 },
+        wheat:        { lowMm: 450, highMm: 650, days: 130 },
+        maize:        { lowMm: 500, highMm: 800, days: 135 }
+    };
+
+    const seedRate = seedRates[crop];
+    const fertilizerRate = fertilizerRates[crop];
+    const water = waterNeeds[crop];
+
+    const formatLitres = value =>
+        Math.round(value).toLocaleString("en-US");
+
+    // Calculate seed and fertilizer quantities.
+    this.results.seed =
+        (seedRate * area).toFixed(1) + " kg";
+
+    this.results.seedType =
+        seedTypeLabels[crop] || "Crop seed";
+
+    this.results.fertilizerType =
+        fertilizerTypes[crop] || "Basal compound fertilizer";
+
+    this.results.fertilizer =
+        (fertilizerRate * area).toFixed(1) + " kg";
+
+    // Convert crop-water demand into litres.
+    // 1 mm over 1 hectare = 10,000 litres.
+    
+// -----------------------------------------
+// WATER REQUIREMENT CALCULATION
+// -----------------------------------------
+
+// Seasonal crop-water demand in millimetres.
+const seasonalLowMm = water.lowMm;
+const seasonalHighMm = water.highMm;
+
+// Average daily crop-water demand in mm/day.
+const dailyLowMm = water.lowMm / water.days;
+const dailyHighMm = water.highMm / water.days;
+
+// 1 mm over 1 hectare = 10,000 litres.
+const dailyFieldLow = dailyLowMm * 10000 * area;
+const dailyFieldHigh = dailyHighMm * 10000 * area;
+
+const seasonalFieldLow = seasonalLowMm * 10000 * area;
+const seasonalFieldHigh = seasonalHighMm * 10000 * area;
+
+
+
+// Display seasonal demand.
+this.results.waterSeason =
+    `${seasonalLowMm}–${seasonalHighMm} mm`;
+
+// Display average daily crop-water demand.
+this.results.waterDaily =
+    `${dailyLowMm.toFixed(2)}–${dailyHighMm.toFixed(2)} mm/day`;
+
+// Supporting information for the farmer's field.
+this.results.waterFieldDaily =
+    `${formatLitres(dailyFieldLow)}–${formatLitres(dailyFieldHigh)} L/day`;
+
+// Total equivalent water volume across the growing season.
+this.results.waterFieldSeason =
+    `${formatLitres(seasonalFieldLow)}–${formatLitres(seasonalFieldHigh)} L`;
+
+    this.results.season =
+        seasons[crop] || "Not specified";
+
+    // Use the existing location-specific seed-variety database.
+    const varietyData = seedVarieties[crop] || {};
+
+    this.results.varieties =
+        varietyData[this.form.region] ||
+        varietyData.default ||
+        [];
+
+    // Retain the existing suitability calculation.
+    let score = 75;
+
+    if ([
+        "sorghum",
+        "pearl_millet",
+        "finger_millet",
+        "rapoko"
+    ].includes(crop)) {
+        score += 10;
+    }
+
+    if ([
+        "sandy",
+        "sandy_loam",
+        "loam"
+    ].includes(this.form.soil)) {
+        score += 5;
+    }
+
+    if (this.form.region === "Masvingo") {
+        score += 5;
+    }
+
+    this.results.score = Math.min(score, 95);
+
+    this.results.message =
+        "Prototype suitability estimate based on the selected crop, soil and region.";
+
+    const cropName = crop.replace(/_/g, " ");
+    const varietyText = this.results.varieties.join(", ");
+
+    this.results.recommendation =
+        `For ${cropName} on ${area} hectare(s), ` +
+        `FarmBright suggests ${varietyText || "a suitable seed variety"}. ` +
+        `The calculated seed, fertilizer and water estimates are shown above.`;
+
+    // Show the results.
+    this.calculated = true;
+
+    // Refresh the nearby-supplier search.
+    setTimeout(() => {
+        refreshNearbyShops();
+    }, 100);
+}
+
+    };
+
+}
+
+
+/* ========================================================= */
+/* MAP INITIALISATION */
+/* ========================================================= */
+
+function initMap() {
+
+
+    /*
+        Create map.
+    */
+
+    /*
+    CREATE MAP
+*/
+
+map =
+    L.map(
+        "map",
+        {
+            zoomControl: true
+        }
+    ).setView(
+        [
+            currentLocation.lat,
+            currentLocation.lng
+        ],
+        12
+    );
+
+/*
+    STANDARD MAP
+    OpenStreetMap - roads, towns, places and geographic detail
+*/
+const standardLayer = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+    {
+        attribution: "© Esri, HERE, Garmin, USGS, Intermap, INCREMENT P, NRCan, Esri Japan, METI, Esri China, Esri Korea, Esri Thailand, TomTom, © OpenStreetMap contributors",
+        maxZoom: 19
+    }
+);
+standardLayer.addTo(map);
+/*
+    SATELLITE MAP
+*/
+const satelliteLayer = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    {
+        attribution:
+            "© Esri, Maxar, Earthstar Geographics and the GIS User Community",
+        maxZoom: 19
+    }
+);
+
+
+/*
+    FIX MAP SIZE AND FORCE TILE REDRAW
+*/
+setTimeout(function () {
+    map.invalidateSize(true);
+    standardLayer.redraw();
+}, 1000);
+
+window.addEventListener("load", function () {
+    setTimeout(function () {
+        map.invalidateSize(true);
+        standardLayer.redraw();
+    }, 1000);
+});
+
+window.addEventListener("resize", function () {
+    map.invalidateSize(true);
+});
+
+/*
+    LAYER SWITCHER
+*/
+
+L.control.layers(
+    {
+        "🗺️ Standard Map": standardLayer,
+        "🛰️ Satellite View": satelliteLayer
+    },
+    {},
+    {
+        collapsed: false
+    }
+).addTo(map);
+
+
+    /*
+        FIELD MARKER.
+    */
+
+    marker =
+        L.marker(
+            [
+                currentLocation.lat,
+                currentLocation.lng
+            ],
+            {
+
+                draggable:
+                    true,
+
+                title:
+                    "Farm field location"
+
+            }
+        ).addTo(
+            map
+        );
+L.circle(
+    [
+        currentLocation.lat,
+        currentLocation.lng
+    ],
+    {
+        radius: 500,
+        color: "#dc2626",
+        fillColor: "#ef4444",
+        fillOpacity: 0.12,
+        weight: 2
+    }
+).addTo(map);
+
+   marker.bindPopup(
+    "<strong> Your Farm Location</strong><br>" +
+    "Drag this marker or click the map to select another location."
+);
+
+marker.bindTooltip(
+    " Your Farm Location",
+    {
+        permanent: true,
+        direction: "top",
+        offset: [0, -10]
+    }
+);
+
+
+    /*
+        SHOP LAYER.
+    */
+
+    shopLayer =
+        L.layerGroup().addTo(
+            map
+        );
+
+
+    /*
+        DRAG FIELD MARKER.
+    */
+
+    marker.on(
+        "dragend",
+        function () {
+
+            const position =
+                marker.getLatLng();
+
+            updateLocationDisplay(
+                position,
+                true
+            );
+
+        }
+    );
+
+
+    /*
+        CLICK MAP.
+    */
+
+    map.on(
+    "click",
+    function (event) {
+
+        marker.setLatLng(
+            event.latlng
+        );
+        locationConfirmed = true;
+
+        updateLocationDisplay(
+            event.latlng,
+            true
+        );
+
+        marker.openPopup();
+
+    }
+);
+
+
+    /*
+        SCALE.
+    */
+
+    L.control.scale(
+        {
+            metric:
+                true,
+
+            imperial:
+                false
+        }
+    ).addTo(
+        map
+    );
+
+
+    /*
+        Initial update.
+    */
+
+   updateLocationDisplay(
+    marker.getLatLng(),
+    false
+);
+
+}
+
+window.addEventListener("resize", function () {
+    if (map) {
+        map.invalidateSize();
+    }
+});
+/* ========================================================= */
+/* UPDATE LOCATION */
+/* ========================================================= */
+async function updateLocationDisplay(
+    latlng,
+    userSelected = true
+) {
+
+    if (userSelected) {
+    locationConfirmed = true;
+}
+
+    currentLocation.lat =
+        latlng.lat;
+
+
+    currentLocation.lng =
+        latlng.lng;
+
+
+    /*
+        Display coordinates.
+    */
+
+    document.getElementById(
+        "latitude-display"
+    ).textContent =
+        latlng.lat.toFixed(
+            6
+        );
+
+
+    document.getElementById(
+        "longitude-display"
+    ).textContent =
+        latlng.lng.toFixed(
+            6
+        );
+
+
+    document.getElementById(
+        "location-text"
+    ).textContent =
+        `${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}`;
+
+
+    /*
+        Reverse geocode location.
+    */
+
+    await reverseGeocode(
+        latlng.lat,
+        latlng.lng
+    );
+
+
+    /*
+        GIS agricultural context.
+    */
+
+    fetchAgriculturalContext(
+        latlng.lat,
+        latlng.lng
+    );
+
+
+    /*
+        Weather.
+    */
+
+    fetchWeather(
+        latlng.lat,
+        latlng.lng
+    );
+
+
+    /*
+        Nearby shops.
+    */
+
+    fetchNearbyShops(
+        latlng.lat,
+        latlng.lng
+    );
+
+}
+
+
+/* ========================================================= */
+/* REVERSE GEOCODING */
+/* ========================================================= */
+
+async function reverseGeocode(
+    lat,
+    lon
+) {
+
+    try {
+
+        const url =
+            "https://nominatim.openstreetmap.org/reverse" +
+            `?format=json&lat=${encodeURIComponent(lat)}` +
+            `&lon=${encodeURIComponent(lon)}` +
+            "&zoom=18&addressdetails=1";
+
+
+        const response =
+            await fetch(
+                url,
+                {
+                    headers: {
+                        "Accept":
+                            "application/json"
+                    }
+                }
+            );
+
+
+        if (
+            !response.ok
+        ) {
+
+            throw new Error(
+                "Reverse geocoding failed"
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+
+        currentLocation.address =
+            data.display_name ||
+            "Selected location";
+
+
+        document.getElementById(
+            "address-display"
+        ).textContent =
+            currentLocation.address;
+
+
+        document.getElementById(
+            "location-text"
+        ).textContent =
+            currentLocation.address;
+
+
+    }
+    catch (error) {
+
+        console.warn(
+            "Reverse geocoding error:",
+            error
+        );
+
+
+        currentLocation.address =
+            "Selected map location";
+
+
+        document.getElementById(
+            "address-display"
+        ).textContent =
+            "Selected map location";
+
+    }
+
+}
+
+
+/* ========================================================= */
+/* SEARCH LOCATION */
+/* ========================================================= */
+
+async function searchLocation() {
+
+
+    const input =
+        document.getElementById(
+            "location-search"
+        );
+
+
+    const query =
+        input.value.trim();
+
+
+    if (
+        !query
+    ) {
+
+        alert(
+            "Please enter a location to search."
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        const url =
+            "https://nominatim.openstreetmap.org/search" +
+            `?format=json&q=${encodeURIComponent(query)}` +
+            "&limit=1";
+
+
+        const response =
+            await fetch(
+                url
+            );
+
+
+        if (
+            !response.ok
+        ) {
+
+            throw new Error(
+                "Location search failed"
+            );
+
+        }
+
+
+        const results =
+            await response.json();
+
+
+        if (
+            !results.length
+        ) {
+
+            alert(
+                "Location could not be found."
+            );
+
+            return;
+
+        }
+
+
+        const result =
+            results[0];
+
+
+        const lat =
+            parseFloat(
+                result.lat
+            );
+
+
+        const lon =
+            parseFloat(
+                result.lon
+            );
+
+
+        marker.setLatLng(
+            [
+                lat,
+                lon
+            ]
+        );
+
+
+        map.setView(
+            [
+                lat,
+                lon
+            ],
+            14
+        );
+
+
+        updateLocationDisplay(
+            {
+                lat:
+                    lat,
+
+                lng:
+                    lon
+            },
+            true
+        
+        );
+
+
+    }
+    catch (error) {
+
+        console.error(
+            error
+        );
+
+
+        alert(
+            "Unable to search for that location."
+        );
+
+    }
+
+}
+
+
+/* ========================================================= */
+/* USER LOCATION */
+/* ========================================================= */
+
+function useCurrentLocation() {
+
+
+    if (
+        !navigator.geolocation
+    ) {
+
+        alert(
+            "Your browser does not support location services."
+        );
+
+        return;
+
+    }
+
+
+    navigator.geolocation.getCurrentPosition(
+
+        function (position) {
+
+            const lat =
+                position.coords.latitude;
+
+            const lon =
+                position.coords.longitude;
+
+
+            marker.setLatLng(
+                [
+                    lat,
+                    lon
+                ]
+            );
+
+
+            map.setView(
+                [
+                    lat,
+                    lon
+                ],
+                15
+            );
+
+
+            updateLocationDisplay(
+                {
+                    lat:
+                        lat,
+
+                    lng:
+                        lon
+                },
+                true
+            );
+
+        },
+
+        function (error) {
+
+            console.error(
+                error
+            );
+
+
+            alert(
+                "Unable to access your current location."
+            );
+
+        }
+
+    );
+
+}
+
+
+/* ========================================================= */
+/* FARMBRIGHT GIS API */
+/* ========================================================= */
+
+async function fetchAgriculturalContext(
+    lat,
+    lon
+) {
+
+
+    const loading =
+        document.getElementById(
+            "gis-loading"
+        );
+
+
+    const soil =
+        document.getElementById(
+            "gis-soil"
+        );
+
+
+    const zone =
+        document.getElementById(
+            "gis-zone"
+        );
+
+
+    loading.classList.remove(
+        "hidden"
+    );
+
+
+    try {
+
+        const url =
+            `/api/agricultural-context/?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}`;
+
+
+        const response =
+            await fetch(
+                url
+            );
+
+
+        const data =
+            await response.json();
+agriculturalContext = data;
+
+        if (
+            !response.ok
+        ) {
+
+            throw new Error(
+                data.error ||
+                "GIS request failed"
+            );
+
+        }
+
+
+        soil.textContent =
+            data.soil_sub_family ||
+            "No soil data found";
+
+
+        zone.textContent =
+            data.agro_ecological_zone ||
+            "No agro-ecological zone found";
+
+
+        /*
+            Update field popup.
+        */
+
+        marker.bindPopup(
+
+            `<strong> Farm Field</strong><br>` +
+
+            `<strong>Soil:</strong> ${
+                escapeHtml(
+                    data.soil_sub_family ||
+                    "Unavailable"
+                )
+            }<br>` +
+
+            `<strong>Agro-Ecological Zone:</strong> ${
+                escapeHtml(
+                    data.agro_ecological_zone ||
+                    "Unavailable"
+                )
+            }`
+
+        );
+
+
+    }
+    catch (error) {
+
+        console.error(
+            "GIS error:",
+            error
+        );
+
+
+        soil.textContent =
+            "Unable to retrieve soil data";
+
+
+        zone.textContent =
+            "Unable to retrieve zone data";
+
+    }
+    finally {
+
+        loading.classList.add(
+            "hidden"
+        );
+
+    }
+
+}
+
+
+/* ========================================================= */
+/* AGRO SHOP SEARCH */
+/* ========================================================= */
+
+async function fetchNearbyShops(lat, lon) {
+
+    const shopList = document.getElementById("shop-list");
+
+    if (!shopList) return;
+
+    // Clear previous shop markers.
+    if (shopLayer) {
+        shopLayer.clearLayers();
+    }
+
+    shopList.innerHTML = `
+        <div class="bg-blue-50 border border-blue-200
+                    rounded-xl p-5 text-center text-blue-700">
+            <span class="spinner"></span>
+            <span class="ml-2">
+                Searching FarmBright's agro-dealer database...
+            </span>
+        </div>
+    `;
+
+    try {
+
+        // Request suppliers from our Django database.
+        const params = new URLSearchParams({
+            latitude: Number(lat),
+            longitude: Number(lon),
+            radius: 50
+        });
+
+        const response = await fetch(
+            `/api/agro-dealers/?${params.toString()}`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.error || "Unable to retrieve agro-dealers."
+            );
+        }
+
+        // Convert database records into the format
+        // expected by the existing Leaflet renderer.
+        const shops = (data.dealers || []).map(dealer => ({
+
+            id: dealer.id,
+
+            tags: {
+                name: dealer.name,
+                shop: dealer.dealer_type || "Agricultural supplier",
+
+                "addr:street": dealer.address || "",
+                "addr:city": dealer.city || "",
+                "addr:district": dealer.province || "",
+
+                phone: dealer.phone || "",
+                website: dealer.website || "",
+                products: dealer.products || ""
+            },
+
+            shopLat: Number(dealer.latitude),
+            shopLon: Number(dealer.longitude),
+            distance: Number(dealer.distance_km)
+
+        })).filter(shop =>
+            Number.isFinite(shop.shopLat) &&
+            Number.isFinite(shop.shopLon) &&
+            Number.isFinite(shop.distance)
+        );
+
+        console.log(
+            "FarmBright agro-dealers:",
+            shops
+        );
+
+        console.log(
+            "Number of suppliers found:",
+            shops.length
+        );
+
+        // Use the existing renderer.
+        // This creates the map markers and shop cards.
+        renderShopResults(shops);
+
+    } catch (error) {
+
+        console.error(
+            "FarmBright agro-dealer error:",
+            error
+        );
+
+        shopList.innerHTML = `
+            <div class="bg-red-50 border border-red-200
+                        rounded-xl p-5 text-red-700">
+
+                <strong>
+                    Unable to load FarmBright agro-dealers.
+                </strong>
+
+                <p class="text-sm mt-2">
+                    Please check your connection and try again.
+                </p>
+
+                <button
+                    type="button"
+                    onclick="refreshNearbyShops()"
+                    class="mt-3 bg-primary-green text-white
+                           px-4 py-2 rounded-lg">
+
+                    🔄 Try Again
+
+                </button>
+            </div>
+        `;
+    }
+}
+
+
+/* ========================================================= */
+/* RENDER SHOPS */
+/* ========================================================= */
+
+function renderShopResults(
+    shops
+) {
+
+
+    const shopList =
+        document.getElementById(
+            "shop-list"
+        );
+
+
+    /*
+        Clear old markers.
+    */
+
+    if (
+        shopLayer
+    ) {
+
+        shopLayer.clearLayers();
+
+    }
+
+
+    if (
+        !shops.length
+    ) {
+
+        shopList.innerHTML = `
+
+            <div class="bg-gray-50
+                        border border-gray-200
+                        rounded-xl
+                        p-6
+                        text-center">
+
+                <div class="text-4xl mb-3">
+                    🏪
+                </div>
+
+                <p class="font-semibold text-gray-700">
+
+                    No mapped agro-dealers found
+                    within 50 km.
+
+                </p>
+
+                <p class="text-sm text-gray-500 mt-2">
+
+                    This does not necessarily mean
+                    there are no agro-dealers in the area.
+                    Public map coverage may simply be
+                    incomplete.
+
+                </p>
+
+                <button
+                    type="button"
+                    onclick="refreshNearbyShops()"
+                    class="mt-4
+                           bg-primary-green
+                           text-white
+                           px-4 py-2
+                           rounded-lg">
+
+                    🔄 Search Again
+
+                </button>
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    shopList.innerHTML =
+        "";
+
+
+    /*
+        Get currently selected crop/seed information.
+    */
+
+    const seedRequest =
+        getCurrentSeedRequest();
+
+
+    shops.forEach(
+        shop => {
+
+
+            const tags =
+                shop.tags ||
+                {};
+
+
+            const name =
+                tags.name ||
+                tags.brand ||
+                "Unnamed Agro-Dealer";
+
+
+            const shopType =
+                tags.shop ||
+                "Agricultural supplier";
+
+
+            /*
+                Search OSM tags for seed variety names.
+            */
+
+            const searchableText =
+                JSON.stringify(
+                    tags
+                ).toLowerCase();
+
+
+            const matchedSeeds =
+                seedRequest.varieties.filter(
+                    variety =>
+                        searchableText.includes(
+                            variety.toLowerCase()
+                        )
+                );
+
+
+            /*
+                Popup.
+            */
+
+            const popupHtml = `
+
+                <div style="min-width:220px">
+
+                    <strong>
+                        🏪 ${escapeHtml(name)}
+                    </strong>
+
+                    <br>
+
+                    <span>
+                        Type:
+                        ${escapeHtml(shopType)}
+                    </span>
+
+                    <br>
+
+                    <span>
+                        Distance:
+                        ${shop.distance.toFixed(1)} km
+                    </span>
+
+                    <br><br>
+
+                    <strong>
+                        Farmer is looking for:
+                    </strong>
+
+                    <br>
+
+                    ${
+                        seedRequest.varieties.length
+
+                        ?
+
+                        escapeHtml(
+                            seedRequest.varieties.join(
+                                ", "
+                            )
+                        )
+
+                        :
+
+                        "Select a crop and region"
+
+                    }
+
+                    <br><br>
+
+                    <small>
+                        Public map data does not verify
+                        current seed stock.
+                    </small>
+
+                </div>
+
+            `;
+
+
+            /*
+                SHOP ICON.
+            */
+
+            const shopIcon =
+                L.divIcon(
+                    {
+
+                        className:
+                            "farmbright-shop-marker",
+
+                        html:
+                            '<div style="font-size:25px;">🏪</div>',
+
+                        iconSize:
+                            [
+                                30,
+                                30
+                            ],
+
+                        iconAnchor:
+                            [
+                                15,
+                                28
+                            ],
+
+                        popupAnchor:
+                            [
+                                0,
+                                -26
+                            ]
+
+                    }
+                );
+
+
+            /*
+                Add marker.
+            */
+
+            const shopMarker =
+                L.marker(
+                    [
+                        shop.shopLat,
+                        shop.shopLon
+                    ],
+                    {
+
+                        icon:
+                            shopIcon,
+
+                        title:
+                            name
+
+                    }
+                )
+                .addTo(
+                    shopLayer
+                )
+                .bindPopup(
+                    popupHtml
+                );
+
+
+            /*
+                PERMANENT SHOP NAME.
+            */
+
+            shopMarker.bindTooltip(
+
+                escapeHtml(
+                    name
+                ),
+
+                {
+
+                    permanent:
+                        true,
+
+                    direction:
+                        "top",
+
+                    offset:
+                        [
+                            0,
+                            -22
+                        ],
+
+                    className:
+                        "farmbright-shop-label"
+
+                }
+
+            );
+
+
+            /*
+                Shop card.
+            */
+
+            const card =
+                document.createElement(
+                    "div"
+                );
+
+
+            card.className =
+                "shop-card bg-gray-50 " +
+                "border border-gray-200 " +
+                "rounded-xl p-5";
+
+
+            const phone =
+                tags.phone ||
+                tags["contact:phone"] ||
+                "";
+
+
+            const website =
+                tags.website ||
+                tags["contact:website"] ||
+                "";
+
+
+            const address =
+                tags["addr:street"] ||
+                tags["addr:city"] ||
+                tags["addr:district"] ||
+                "Address not listed";
+
+
+            /*
+                Seed status.
+            */
+
+            let seedStatus =
+                "";
+
+
+            if (
+                matchedSeeds.length
+            ) {
+
+                seedStatus = `
+
+                    <div class="mt-3
+                                text-green-700
+                                bg-green-50
+                                rounded-lg
+                                p-3
+                                text-xs">
+
+                        🟢 Map data mentions:
+
+                        <strong>
+
+                            ${escapeHtml(
+                                matchedSeeds.join(
+                                    ", "
+                                )
+                            )}
+
+                        </strong>
+
+                        <br>
+
+                        <span class="text-gray-500">
+
+                            Confirm current stock
+                            with the supplier.
+
+                        </span>
+
+                    </div>
+
+                `;
+
+            }
+            else if (
+                seedRequest.varieties.length
+            ) {
+
+                seedStatus = `
+
+                    <div class="mt-3
+                                text-gray-600
+                                bg-white
+                                rounded-lg
+                                p-3
+                                text-xs">
+
+                        🌱 Looking for:
+
+                        <strong>
+
+                            ${escapeHtml(
+                                seedRequest.varieties.join(
+                                    ", "
+                                )
+                            )}
+
+                        </strong>
+
+                        <br>
+
+                        <span>
+
+                            Seed products are not listed
+                            in the available map data.
+
+                        </span>
+
+                    </div>
+
+                `;
+
+            }
+
+
+            card.innerHTML = `
+
+                <div class="flex justify-between
+                            gap-4">
+
+                    <div>
+
+                        <h4 class="font-bold
+                                   text-dark-green">
+
+                            🏪
+                            ${escapeHtml(name)}
+
+                        </h4>
+
+                        <p class="text-xs
+                                  text-gray-500 mt-1">
+
+                            ${escapeHtml(shopType)}
+
+                        </p>
+
+                    </div>
+
+
+                    <span class="text-sm
+                                 font-bold
+                                 text-primary-green
+                                 whitespace-nowrap">
+
+                        ${shop.distance.toFixed(1)}
+                        km
+
+                    </span>
+
+                </div>
+
+
+                <p class="text-sm
+                          text-gray-600 mt-3">
+
+                    📍
+                    ${escapeHtml(address)}
+
+                </p>
+
+
+                ${
+                    phone
+
+                    ?
+
+                    `
+
+                    <p class="text-sm
+                              text-gray-600 mt-1">
+
+                        📞
+                        ${escapeHtml(phone)}
+
+                    </p>
+
+                    `
+
+                    :
+
+                    ""
+
+                }
+
+
+                ${
+                    website
+
+                    ?
+
+                    `
+
+                    <p class="text-sm mt-2">
+
+                        🌐
+
+                        <a
+                            href="${escapeAttribute(website)}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-blue-600 underline">
+
+                            Website
+
+                        </a>
+
+                    </p>
+
+                    `
+
+                    :
+
+                    ""
+
+                }
+
+
+                ${seedStatus}
+
+
+                <button
+                    type="button"
+                    class="mt-4
+                           bg-primary-green
+                           hover:bg-dark-green
+                           text-white
+                           px-4 py-2
+                           rounded-lg
+                           text-sm"
+                    onclick="focusShop(
+                        ${shop.shopLat},
+                        ${shop.shopLon}
+                    )">
+
+                    View on Map
+
+                </button>
+
+            `;
+
+
+            shopList.appendChild(
+                card
+            );
+
+        }
+    );
+
+}
+
+
+/* ========================================================= */
+/* GET CURRENT CROP / SEEDS */
+/* ========================================================= */
+
+function getCurrentSeedRequest() {
+
+
+    /*
+        Alpine's component is not directly available
+        globally, so read the current form values from
+        the select elements.
+    */
+
+    const crop =
+        document.querySelector(
+            'select[x-model="form.crop"]'
+        )?.value ||
+        "";
+
+
+    const region =
+        document.querySelector(
+            'select[x-model="form.region"]'
+        )?.value ||
+        "";
+
+
+    const cropData =
+        seedVarieties[crop];
+
+
+    if (
+        !cropData
+    ) {
+
+        return {
+
+            crop:
+                crop,
+
+            varieties:
+                []
+
+        };
+
+    }
+
+
+    return {
+
+        crop:
+            crop,
+
+        varieties:
+            cropData[region] ||
+            cropData.default ||
+            []
+
+    };
+
+}
+
+
+/* ========================================================= */
+/* REFRESH SHOPS */
+/* ========================================================= */
+
+function refreshNearbyShops() {
+
+
+    if (
+        !currentLocation
+    ) {
+
+        return;
+
+    }
+
+
+    fetchNearbyShops(
+
+        currentLocation.lat,
+
+        currentLocation.lng
+
+    );
+
+}
+
+
+/* ========================================================= */
+/* FOCUS SHOP */
+/* ========================================================= */
+
+function focusShop(
+    lat,
+    lon
+) {
+
+
+    if (
+        !map
+    ) {
+
+        return;
+
+    }
+
+
+    map.setView(
+        [
+            lat,
+            lon
+        ],
+        16
+    );
+
+}
+
+
+/* ========================================================= */
+/* DISTANCE */
+/* ========================================================= */
+
+function calculateDistance(
+    lat1,
+    lon1,
+    lat2,
+    lon2
+) {
+
+
+    const R =
+        6371;
+
+
+    const dLat =
+        (
+            lat2 -
+            lat1
+        )
+        *
+        Math.PI /
+        180;
+
+
+    const dLon =
+        (
+            lon2 -
+            lon1
+        )
+        *
+        Math.PI /
+        180;
+
+
+    const a =
+        Math.sin(
+            dLat / 2
+        )
+        *
+        Math.sin(
+            dLat / 2
+        )
+
+        +
+
+        Math.cos(
+            lat1 *
+            Math.PI /
+            180
+        )
+
+        *
+
+        Math.cos(
+            lat2 *
+            Math.PI /
+            180
+        )
+
+        *
+
+        Math.sin(
+            dLon / 2
+        )
+        *
+        Math.sin(
+            dLon / 2
+        );
+
+
+    const c =
+        2 *
+        Math.atan2(
+            Math.sqrt(a),
+            Math.sqrt(
+                1 - a
+            )
+        );
+
+
+    return R * c;
+
+}
+
+
+/* ========================================================= */
+/* WEATHER */
+/* ========================================================= */
+
+async function fetchWeather(
+    lat,
+    lon
+) {
+
+
+    if (
+        !WEATHER_API_KEY
+    ) {
+
+        document.getElementById(
+            "weather-advice"
+        ).textContent =
+            "Weather API key is not configured.";
+
+
+        return;
+
+    }
+
+
+    try {
+
+        const url =
+            "https://api.openweathermap.org/data/2.5/weather" +
+
+            `?lat=${encodeURIComponent(lat)}` +
+
+            `&lon=${encodeURIComponent(lon)}` +
+
+            "&units=metric" +
+
+            `&appid=${encodeURIComponent(WEATHER_API_KEY)}`;
+
+
+        const response =
+            await fetch(
+                url
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !response.ok
+        ) {
+
+            throw new Error(
+                data.message ||
+                "Weather request failed"
+            );
+
+        }
+
+
+        document.getElementById(
+            "weather-temp"
+        ).textContent =
+            data.main
+                ? `${data.main.temp} °C`
+                : "--";
+
+
+        document.getElementById(
+            "weather-condition"
+        ).textContent =
+            data.weather?.[0]?.description ||
+            "--";
+
+
+        document.getElementById(
+            "weather-rain"
+        ).textContent =
+            data.rain
+            ?
+            `${data.rain["1h"] || 0} mm`
+            :
+            "0 mm";
+
+
+        document.getElementById(
+            "weather-humidity"
+        ).textContent =
+            data.main
+            ?
+            `${data.main.humidity}%`
+            :
+            "--";
+
+
+        
+
+        let advice =
+            "";
+
+
+        let decision =
+            "";
+
+
+        const temperature =
+            data.main?.temp;
+
+
+        if (
+            temperature < 15
+        ) {
+
+            advice =
+                "⚠️ Cool conditions";
+
+
+            decision =
+                "Consider crop-specific temperature requirements before planting.";
+
+        }
+        else if (
+            temperature > 32
+        ) {
+
+            advice =
+                "🔥 High temperature";
+
+
+            decision =
+                "Monitor heat and moisture conditions.";
+
+        }
+        else {
+
+            advice =
+                "✅ Temperature is within a moderate range";
+
+
+            decision =
+                "Temperature conditions appear moderate.";
+
+        }
+
+
+        document.getElementById(
+            "weather-advice"
+        ).textContent =
+            advice;
+
+
+        document.getElementById(
+            "planting-decision"
+        ).textContent =
+            decision;
+
+    }
+    catch (
+        error
+    ) {
+
+        console.error(
+            "Weather error:",
+            error
+        );
+
+
+        document.getElementById(
+            "weather-advice"
+        ).textContent =
+            "Weather information unavailable.";
+
+
+        document.getElementById(
+            "planting-decision"
+        ).textContent =
+            "Unable to make a weather-based decision.";
+
+    }
+
+}
+
+
+/* ========================================================= */
+/* SAVE LOCATION */
+/* ========================================================= */
+
+async function saveLocation() {
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/save-location/",
+                {
+
+                    method:
+                        "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json",
+
+                        "X-CSRFToken":
+                            "{{ csrf_token }}"
+
+                    },
+
+                    body:
+                        JSON.stringify(
+                            {
+
+                                name:
+                                    "FarmBright Field",
+
+                                latitude:
+                                    currentLocation.lat,
+
+                                longitude:
+                                    currentLocation.lng,
+
+                                address:
+                                    currentLocation.address
+
+                            }
+                        )
+
+                }
+            );
+
+
+        if (
+            response.redirected
+        ) {
+
+            alert(
+                "Please log in before saving a farm location."
+            );
+
+            return;
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            data.success
+        ) {
+
+            alert(
+                "📍 Farm location saved successfully!"
+            );
+
+        }
+        else {
+
+            alert(
+                data.error ||
+                "Unable to save farm location."
+            );
+
+        }
+
+    }
+    catch (
+        error
+    ) {
+
+        console.error(
+            "Save location error:",
+            error
+        );
+
+
+        alert(
+            "Please log in before saving a farm location."
+        );
+
+    }
+
+}
+
+
+/* ========================================================= */
+/* HTML ESCAPING */
+/* ========================================================= */
+
+function escapeHtml(
+    value
+) {
+
+    return String(
+        value
+    )
+
+    .replace(
+        /&/g,
+        "&amp;"
+    )
+
+    .replace(
+        /</g,
+        "&lt;"
+    )
+
+    .replace(
+        />/g,
+        "&gt;"
+    )
+
+    .replace(
+        /"/g,
+        "&quot;"
+    )
+
+    .replace(
+        /'/g,
+        "&#039;"
+    );
+
+}
+
+
+/* ========================================================= */
+/* ATTRIBUTE ESCAPING */
+/* ========================================================= */
+
+function escapeAttribute(
+    value
+) {
+
+    return String(
+        value
+    )
+
+    .replace(
+        /"/g,
+        "&quot;"
+    )
+
+    .replace(
+        /'/g,
+        "&#039;"
+    );
+
+}
+
+
+/* ========================================================= */
+/* KEYBOARD SEARCH */
+/* ========================================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+
+        /*
+            Initialise map.
+        */
+
+        initMap();
+
+
+        /*
+            Search when Enter is pressed.
+        */
+
+        const searchInput =
+            document.getElementById(
+                "location-search"
+            );
+
+
+        if (
+            searchInput
+        ) {
+
+            searchInput.addEventListener(
+                "keydown",
+                function (event) {
+
+                    if (
+                        event.key ===
+                        "Enter"
+                    ) {
+
+                        searchLocation();
+
+                    }
+
+                }
+            );
+
+        }
+
+    }
+);
+
+        /* ========================================================= */
+/* VOCAL BRIDGE */
+/* ========================================================= */
+
+function startVocalBridge() {
+
+    const input =
+        document.getElementById("farmbright-question");
+
+    const language =
+        document.getElementById("farmbright-language").value;
+
+    const SpeechRecognition =
+        window.SpeechRecognition ||
+        window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+        alert(
+            "Voice input is not supported by this browser."
+        );
+        return;
+    }
+
+    const recognition =
+        new SpeechRecognition();
+
+    recognition.lang =
+        language === "sn"
+            ? "sn-ZW"
+            : "en-US";
+
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = function () {
+        input.placeholder =
+            "Listening... speak your farming question";
+    };
+
+    recognition.onresult = function (event) {
+
+        const transcript =
+            event.results[0][0].transcript;
+
+        input.value =
+            transcript;
+
+        input.placeholder =
+            "e.g. Which small grain should I plant?";
+    };
+
+    recognition.onerror = function () {
+
+        input.placeholder =
+            "Voice input could not be completed.";
+    };
+
+    recognition.onend = function () {
+
+        input.placeholder =
+            "e.g. Which small grain should I plant?";
+    };
+
+    recognition.start();
+}
+
+
+function translateShonaToEnglish(text) {
+
+    const shona = text.toLowerCase().trim();
+
+    // Normalize common Shona farming terms
+    let normalized = shona
+        .replace(/\bmhunga\b/g, "sorghum")
+        .replace(/\bmapfunde\b/g, "pearl millet")
+        .replace(/\brukweza\b/g, "finger millet")
+        .replace(/\bmbeu\b/g, "seed")
+        .replace(/\bfetereza\b/g, "fertilizer")
+        .replace(/\bmvura\b/g, "water")
+        .replace(/\bmahekita\b/g, "hectares");
+
+    // Seed questions
+    if (
+        normalized.includes("seed") &&
+        normalized.includes("sorghum")
+    ) {
+        return "Which seed should I use for sorghum?";
+    }
+
+    if (
+        normalized.includes("seed") &&
+        normalized.includes("pearl millet")
+    ) {
+        return "Which seed should I use for pearl millet?";
+    }
+
+    if (
+        normalized.includes("seed") &&
+        normalized.includes("finger millet")
+    ) {
+        return "Which seed should I use for finger millet?";
+    }
+
+    // General seed question
+    if (
+        normalized.includes("seed")
+    ) {
+        return "Which seed should I use?";
+    }
+
+    // Planting-time questions
+    if (
+        (normalized.includes("kudyara") ||
+         normalized.includes("plant")) &&
+        normalized.includes("riini")
+    ) {
+        if (normalized.includes("sorghum")) {
+            return "When should I plant sorghum?";
+        }
+
+        if (normalized.includes("pearl millet")) {
+            return "When should I plant pearl millet?";
+        }
+
+        if (normalized.includes("finger millet")) {
+            return "When should I plant finger millet?";
+        }
+
+        return "When should I plant?";
+    }
+
+    // Fertilizer questions
+    if (
+        normalized.includes("fertilizer") &&
+        (
+            normalized.includes("yakawanda sei") ||
+            normalized.includes("how much")
+        )
+    ) {
+        return "How much fertilizer do I need?";
+    }
+
+    // Water questions
+    if (
+        normalized.includes("water") &&
+        (
+            normalized.includes("yakawanda sei") ||
+            normalized.includes("how much")
+        )
+    ) {
+        return "How much water does the crop need?";
+    }
+
+    // Crop recommendation
+    if (
+        normalized.includes("chirimwa") ||
+        normalized.includes("crop")
+    ) {
+        return "Which crop should I plant?";
+    }
+
+    return normalized;
+}
+
+function translateResponseToShona(response) {
+
+    let shona = response;
+
+    shona = shona
+        .replace(/Which seed should I use\?/gi,
+            "Ndeipi mbeu yandinofanira kushandisa?")
+        .replace(/Which seed should I use for sorghum\?/gi,
+            "Ndeipi mbeu yandinofanira kushandisa yemhunga?")
+        .replace(/Which seed should I use for pearl millet\?/gi,
+            "Ndeipi mbeu yandinofanira kushandisa yemapfunde?")
+        .replace(/Which seed should I use for finger millet\?/gi,
+            "Ndeipi mbeu yandinofanira kushandisa yerukweza?")
+        .replace(/When should I plant sorghum\?/gi,
+            "Ndinofanira kudyara mhunga riini?")
+        .replace(/When should I plant pearl millet\?/gi,
+            "Ndinofanira kudyara mapfunde riini?")
+        .replace(/When should I plant finger millet\?/gi,
+            "Ndinofanira kudyara rukweza riini?")
+        .replace(/Which crop should I plant\?/gi,
+            "Ndechipi chirimwa chandinofanira kudyara?")
+        .replace(/How much fertilizer do I need\?/gi,
+            "Ndinoda fetereza yakawanda sei?")
+        .replace(/How much water does the crop need\?/gi,
+            "Chirimwa chinoda mvura yakawanda sei?");
+
+    return shona;
+}
+
+/* ASK FARMBRIGHT - NLP */
+/* ========================================================= */
+
+function normaliseFarmCrop(value) {
+    const text = String(value || "")
+        .toLowerCase()
+        .replace(/[_-]+/g, " ")
+        .trim();
+
+    if (/pearl millet|mapfunde/.test(text)) return "pearl_millet";
+    if (/finger millet|rukweza/.test(text)) return "finger_millet";
+    if (/rapoko/.test(text)) return "rapoko";
+    if (/sorghum|mhunga|kanamunga/.test(text)) return "sorghum";
+    if (/maize|chibage/.test(text)) return "maize";
+    if (/wheat|gorosi/.test(text)) return "wheat";
+
+    return "";
+}
+
+
+function getFarmArea(question, entities = {}) {
+    const entityArea = Number(entities.farm_area_hectares);
+
+    if (Number.isFinite(entityArea) && entityArea > 0) {
+        return entityArea;
+    }
+
+    const text = String(question || "").toLowerCase();
+
+    const numberWords = {
+        one: 1, imwe: 1, rimwe: 1,
+        two: 2, mbiri: 2, maviri: 2,
+        three: 3, matatu: 3,
+        four: 4, mana: 4,
+        five: 5, shanu: 5, mashanu: 5,
+        six: 6, matanhatu: 6,
+        seven: 7, manomwe: 7,
+        eight: 8, masere: 8,
+        nine: 9, mapfumbamwe: 9,
+        ten: 10, gumi: 10
+    };
+
+    const wordPattern = Object.keys(numberWords).join("|");
+    const unitPattern = "(?:hectares?|ha|mahekita|hekita|acres?|acre)";
+
+    let amount = null;
+    let unit = "";
+
+    // Example: "5 hectares", "five hectares", "5 mahekita".
+    let match = text.match(
+        new RegExp(
+            "\\b(\\d+(?:[.,]\\d+)?)\\s*(" +
+            unitPattern + ")\\b",
+            "i"
+        )
+    );
+
+    if (match) {
+        amount = Number(match[1].replace(",", "."));
+        unit = match[2];
+    }
+
+    // Example: "five hectares", "mahekita mashanu".
+    if (amount === null) {
+        match = text.match(
+            new RegExp(
+                "\\b(" + wordPattern + ")\\s*(" +
+                unitPattern + ")\\b",
+                "i"
+            )
+        );
+
+        if (match) {
+            amount = numberWords[match[1]];
+            unit = match[2];
+        }
+    }
+
+    // Example: "mahekita 5", "mahekita mashanu".
+    if (amount === null) {
+        match = text.match(
+            new RegExp(
+                "\\b(" + unitPattern + ")\\s*(\\d+(?:[.,]\\d+)?|" +
+                wordPattern + ")\\b",
+                "i"
+            )
+        );
+
+        if (match) {
+            unit = match[1];
+
+            const value = match[2].toLowerCase();
+
+            amount = Object.prototype.hasOwnProperty.call(
+                numberWords, value
+            )
+                ? numberWords[value]
+                : Number(value.replace(",", "."));
+        }
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+        return null;
+    }
+
+    // Convert acres into hectares.
+    if (/acre/i.test(unit)) {
+        amount *= 0.404686;
+    }
+
+    return Number(amount.toFixed(4));
+}
+
+
+async function syncFarmBrightQuestion(data, originalQuestion) {
+    const entities = data.entities || {};
+
+    const crop =
+        normaliseFarmCrop(entities.crop) ||
+        normaliseFarmCrop(originalQuestion);
+
+    const area = getFarmArea(originalQuestion, entities);
+
+    // Supported town-centre coordinates for a prototype map update.
+    // These are approximate town locations, not exact farm coordinates.
+    const towns = [
+        {
+            name: "Harare",
+            region: "Harare",
+            lat: -17.8252,
+            lng: 31.0335
+        },
+        {
+            name: "Masvingo",
+            region: "Masvingo",
+            lat: -20.074,
+            lng: 30.830
+        },
+        {
+            name: "Bulawayo",
+            region: "",
+            lat: -20.150,
+            lng: 28.580
+        },
+        {
+            name: "Gweru",
+            region: "Midlands",
+            lat: -19.455,
+            lng: 29.817
+        },
+        {
+            name: "Mutare",
+            region: "Manicaland",
+            lat: -18.971,
+            lng: 32.671
+        },
+        {
+            name: "Chinhoyi",
+            region: "Mashonaland West",
+            lat: -17.366,
+            lng: 30.200
+        },
+        {
+            name: "Bindura",
+            region: "Mashonaland Central",
+            lat: -17.302,
+            lng: 31.331
+        },
+        {
+            name: "Chiredzi",
+            region: "Masvingo",
+            lat: -21.050,
+            lng: 31.667
+        },
+        {
+            name: "Chipinge",
+            region: "Manicaland",
+            lat: -20.188,
+            lng: 32.624
+        },
+        {
+            name: "Gokwe",
+            region: "Midlands",
+            lat: -18.205,
+            lng: 28.935
+        }
+    ];
+
+    const locationText = [
+        originalQuestion,
+        entities.location,
+        entities.district,
+        entities.province
+    ].filter(Boolean).join(" ").toLowerCase();
+
+    const town = towns.find(item =>
+        locationText.includes(item.name.toLowerCase())
+    );
+
+    let location = town ? town.name :
+        (entities.location || currentLocation.address || "");
+
+    // Fill the existing calculator managed by Alpine.js.
+    const calculatorElement = document.querySelector(
+        'section[x-data="calculator()"]'
+    );
+
+    if (!calculatorElement || !window.Alpine) {
+        console.error("FarmBright calculator component was not found.");
+
+        return {
+            crop,
+            area,
+            location,
+            calculated: false
+        };
+    }
+
+    const calculatorState = window.Alpine.$data(calculatorElement);
+
+    if (crop) {
+        calculatorState.form.crop = crop;
+    }
+
+    if (area !== null) {
+        calculatorState.form.area = area;
+    }
+
+    // Select a region only when that exact option exists.
+    const regionSelect = calculatorElement.querySelector(
+        'select[x-model="form.region"]'
+    );
+
+    const region = town
+        ? town.region
+        : (entities.region || entities.province || "");
+
+    if (regionSelect && region) {
+        const matchingOption = Array.from(regionSelect.options).find(
+            option =>
+                option.value.toLowerCase() === String(region).toLowerCase()
+        );
+
+        if (matchingOption) {
+            calculatorState.form.region = matchingOption.value;
+        }
+    }
+
+    // If a supported town was named, update the map and GIS context.
+    if (
+        town &&
+        map &&
+        marker &&
+        typeof updateLocationDisplay === "function"
+    ) {
+        marker.setLatLng([town.lat, town.lng]);
+        map.setView([town.lat, town.lng], 12);
+
+        try {
+            await updateLocationDisplay(marker.getLatLng(), true);
+        } catch (error) {
+            console.warn("Map location update failed:", error);
+        }
+    }
+
+    location = town
+        ? town.name
+        : location;
+
+    let calculated = false;
+
+    // Automatically calculate once both crop and area are available.
+    if (crop && area !== null) {
+        calculatorState.calculate();
+        calculated = true;
+
+        calculatorElement.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+    }
+
+    return {
+        crop,
+        area,
+        location,
+        calculated
+    };
+}
+
+
+
+
+function setFarmBrightQuestion(question) {
+
+    const input =
+        document.getElementById("farmbright-question");
+
+    input.value = question;
+    input.focus();
+}
+
+
+async function askFarmBright() {
+
+    const input = document.getElementById("farmbright-question");
+    const resultBox = document.getElementById("farmbright-ai-result");
+    const errorBox = document.getElementById("farmbright-ai-error");
+
+    const originalQuestion = input.value.trim();
+    const language = document.getElementById("farmbright-language").value;
+
+    if (!originalQuestion) {
+        errorBox.textContent = "Please enter a farming question.";
+        errorBox.classList.remove("hidden");
+        resultBox.classList.add("hidden");
+        return;
+    }
+
+    let question = originalQuestion;
+
+    // -----------------------------------------
+    // SHONA INPUT NORMALISATION
+    // -----------------------------------------
+
+    if (language === "sn") {
+
+        const shona = originalQuestion.toLowerCase();
+
+        if (/mapfunde/.test(shona) && /(riini|nguva|mwaka)/.test(shona)) {
+            question = "When should I plant pearl millet?";
+        }
+        else if (/mhunga/.test(shona) && /(riini|nguva|mwaka)/.test(shona)) {
+            question = "When should I plant sorghum?";
+        }
+        else if (/rukweza/.test(shona) && /(riini|nguva|mwaka)/.test(shona)) {
+            question = "When should I plant finger millet?";
+        }
+        else if (/mhunga/.test(shona) && /mbeu/.test(shona)) {
+            question = "Which seed should I use for sorghum?";
+        }
+        else if (/mapfunde/.test(shona) && /mbeu/.test(shona)) {
+            question = "Which seed should I use for pearl millet?";
+        }
+        else if (/rukweza/.test(shona) && /mbeu/.test(shona)) {
+            question = "Which seed should I use for finger millet?";
+        }
+        else {
+            question = translateShonaToEnglish(originalQuestion);
+        }
+    }
+
+    errorBox.classList.add("hidden");
+    resultBox.classList.remove("hidden");
+
+    document.getElementById("farmbright-response").textContent =
+        language === "sn"
+            ? "FarmBright iri kuongorora mubvunzo wako..."
+            : "FarmBright is analysing your question...";
+
+    try {
+
+        // -----------------------------------------
+        // NLP REQUEST
+        // -----------------------------------------
+
+        const response = await fetch(
+            `/api/nlp-query/?query=${encodeURIComponent(question)}`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "Unable to process your question.");
+        }
+
+        const entities = data.entities || {};
+
+        let intent = String(data.intent || "").toLowerCase();
+
+        // -----------------------------------------
+        // EXTRACT CROP AND AREA
+        // -----------------------------------------
+
+        let crop = "";
+
+        if (typeof normaliseFarmCrop === "function") {
+            crop =
+                normaliseFarmCrop(entities.crop) ||
+                normaliseFarmCrop(originalQuestion) ||
+                normaliseFarmCrop(question);
+        }
+
+        let area = null;
+
+        if (typeof getFarmArea === "function") {
+            area = getFarmArea(originalQuestion, entities);
+        }
+        else if (
+            entities.farm_area_hectares !== null &&
+            entities.farm_area_hectares !== undefined
+        ) {
+            const number = Number(entities.farm_area_hectares);
+            area = Number.isFinite(number) && number > 0 ? number : null;
+        }
+
+        // -----------------------------------------
+        // CLASSIFY REQUEST TYPE
+        // -----------------------------------------
+
+        const planRequest =
+            intent === "crop_recommendation" &&
+            Boolean(crop) &&
+            area !== null;
+
+        // Only a complete farm-planning request
+        // should automatically populate and calculate.
+        let synced = {
+            crop: crop,
+            area: area,
+            location:
+                entities.location ||
+                currentLocation.address ||
+                "Not detected",
+            calculated: false
+        };
+
+        if (
+            planRequest &&
+            typeof syncFarmBrightQuestion === "function"
+        ) {
+            synced = await syncFarmBrightQuestion(
+                data,
+                originalQuestion
+            );
+        }
+
+        crop = synced.crop || crop;
+        area = synced.area !== null ? synced.area : area;
+
+        // Fallback intent detection if the NLP service
+        // does not return a recognised intent.
+        if (!intent) {
+
+            if (/when.*plant|planting season|kudyara|mwaka/.test(question.toLowerCase())) {
+                intent = "planting_time";
+            }
+            else if (/seed|mbeu/.test(question.toLowerCase())) {
+                intent = "seed_query";
+            }
+            else if (/fertili[sz]er|fetereza/.test(question.toLowerCase())) {
+                intent = "fertilizer_query";
+            }
+            else if (/water|mvura/.test(question.toLowerCase())) {
+                intent = "water_query";
+            }
+            else {
+                intent = "crop_recommendation";
+            }
+        }
+
+        // -----------------------------------------
+        // AGRICULTURAL REFERENCE DATA
+        // -----------------------------------------
+
+        const cropNames = {
+            sorghum: "Sorghum",
+            pearl_millet: "Pearl Millet",
+            finger_millet: "Finger Millet",
+            rapoko: "Rapoko",
+            wheat: "Wheat",
+            maize: "Maize"
+        };
+
+        const shonaCropNames = {
+            sorghum: "mhunga",
+            pearl_millet: "mapfunde",
+            finger_millet: "rukweza",
+            rapoko: "rapoko",
+            wheat: "gorosi",
+            maize: "chibage"
+        };
+
+        const seasons = {
+            sorghum: "November–December",
+            pearl_millet: "November–December",
+            finger_millet: "November–December",
+            rapoko: "November–December",
+            wheat: "May–June / winter season",
+            maize: "November–December"
+        };
+
+        const fertilizerRates = {
+            sorghum: 200,
+            pearl_millet: 150,
+            finger_millet: 150,
+            rapoko: 150,
+            wheat: 250,
+            maize: 250
+        };
+
+        const waterNeeds = {
+            sorghum: { low: 450, high: 650 },
+            pearl_millet: { low: 450, high: 650 },
+            finger_millet: { low: 450, high: 650 },
+            rapoko: { low: 450, high: 650 },
+            wheat: { low: 450, high: 650 },
+            maize: { low: 500, high: 800 }
+        };
+
+        const cropName = cropNames[crop] || crop || "your crop";
+        const shonaCrop = shonaCropNames[crop] || cropName.toLowerCase();
+
+        const regionSelect = document.querySelector(
+            'select[x-model="form.region"]'
+        );
+
+        const selectedRegion = regionSelect
+            ? regionSelect.value
+            : "";
+
+        const varietiesData =
+            typeof seedVarieties !== "undefined"
+                ? (seedVarieties[crop] || {})
+                : {};
+
+        const varieties =
+            varietiesData[selectedRegion] ||
+            varietiesData.default ||
+            [];
+
+        const context =
+            typeof agriculturalContext !== "undefined"
+                ? agriculturalContext
+                : null;
+
+        const agroZone =
+            context?.agro_ecological_zone || "not yet identified";
+
+        const soil =
+            context?.soil_sub_family || "not yet identified";
+
+        // -----------------------------------------
+        // RESPONSE GENERATION
+        // -----------------------------------------
+
+        let responseText = "";
+
+        // 1. COMPLETE FARM PLAN
+        if (synced.calculated) {
+
+            responseText = language === "sn"
+
+                ? `Ndanzwisisa kuti unoda kurima ${shonaCrop} pamahekita ${area}. Ndazadza calculator uye ndaverenga hurongwa hwako hwekurima pasi apa.`
+
+                : `FarmBright understood that you want to grow ${cropName} on ${area} hectare(s). The calculator has been populated automatically and your complete farm plan is displayed below.`;
+        }
+
+        // 2. PLANTING SEASON
+        else if (intent === "planting_time") {
+
+            const season = seasons[crop];
+
+            if (season) {
+
+                responseText = language === "sn"
+
+                    ? `Nguva yakajairika yekudyara ${shonaCrop} muZimbabwe i${season}. Tarisa mamiriro ekunaya kwemvura uye hunyoro hwevhu usati wadyara.`
+
+                    : `The general planting window for ${cropName} in Zimbabwe is ${season}. Check rainfall and soil moisture conditions before planting.`;
+
+            } else {
+
+                responseText = language === "sn"
+                    ? "Ndapota tsanangura chirimwa chaunoda kuziva nezvenguva yekudyara."
+                    : "Please specify the crop so FarmBright can provide its planting season.";
+            }
+        }
+
+        // 3. SEED VARIETY ADVICE
+        else if (intent === "seed_query") {
+
+            if (varieties.length) {
+
+                responseText = language === "sn"
+
+                    ? `Kune ${shonaCrop}, mhando dzembeu dziri muFarmBright dzinosanganisira ${varieties.join(" kana ")}. Nzvimbo yako iri mu${agroZone}, uye ivhu rako rine mhando ${soil}.`
+
+                    : `For ${cropName}, FarmBright's seed-variety database lists ${varieties.join(", ")}. Your selected location is in ${agroZone}, with soil classification ${soil}.`;
+
+            } else {
+
+                responseText = language === "sn"
+                    ? `FarmBright haisati yave neruzivo rwemhando dzembeu dze${shonaCrop}.`
+                    : `FarmBright does not currently have specific seed-variety information for ${cropName}.`;
+            }
+        }
+
+        // 4. FERTILIZER ADVICE
+        else if (intent === "fertilizer_query") {
+
+            if (fertilizerRates[crop]) {
+
+                const rate = fertilizerRates[crop];
+
+                const amount = area !== null
+                    ? (rate * area).toFixed(1)
+                    : null;
+
+                responseText = language === "sn"
+
+                    ? amount !== null
+                        ? `${shonaCrop} pamahekita ${area} inoda fungidziro ye${amount} kg yefetereza, pachiyero cheprototype che${rate} kg pahekita.`
+                        : `Chiyero cheprototype cheFarmBright che${shonaCrop} i${rate} kg pahekita. Isa huwandu hunoenderana nenzvimbo uye rudzi rwevhu.`
+
+                    : amount !== null
+                        ? `For ${cropName} on ${area} hectares, FarmBright's current prototype rate estimates ${amount} kg of basal fertilizer, using ${rate} kg per hectare.`
+                        : `FarmBright's current prototype fertilizer rate for ${cropName} is ${rate} kg per hectare. The field area is needed to calculate the total amount.`;
+
+            } else {
+
+                responseText = language === "sn"
+                    ? "Ndapota taura chirimwa chaunoda kushandisira fetereza."
+                    : "Please specify the crop to obtain its fertilizer estimate.";
+            }
+        }
+
+        // 5. WATER REQUIREMENTS
+        else if (intent === "water_query") {
+
+            const water = waterNeeds[crop];
+
+            if (water) {
+
+                const low = water.low * 10000;
+                const high = water.high * 10000;
+
+                responseText = language === "sn"
+
+                    ? `Chirimwa che${shonaCrop} chinoda fungidziro yemvura inosvika ${water.low} kusvika ${water.high} mm mumwaka wekukura. Huwandu chaihwo hwemvura yekudiridza hunoenderana nemvura yanaya, ivhu uye danho rekukura kwechirimwa.`
+
+                    : `${cropName} has an indicative seasonal crop-water demand of ${water.low}–${water.high} mm. Actual irrigation requirements depend on rainfall, soil conditions and the crop's growth stage.`;
+
+                if (area !== null) {
+
+                    responseText += language === "sn"
+
+                        ? ` Pamahekita ${area}, izvi zvinoenzana nefungidziro ye${Math.round(low * area).toLocaleString()} kusvika ${Math.round(high * area).toLocaleString()} litres mumwaka wose.`
+
+                        : ` For ${area} hectares, that represents approximately ${Math.round(low * area).toLocaleString()}–${Math.round(high * area).toLocaleString()} litres over the growing season.`;
+                }
+
+            } else {
+
+                responseText = language === "sn"
+                    ? "Ndapota taura chirimwa chaunoda kuziva nezvemvura."
+                    : "Please specify the crop to obtain its water requirement estimate.";
+            }
+        }
+
+        // 6. CROP RECOMMENDATION
+        else if (intent === "crop_recommendation") {
+
+            const dryZone =
+                /IV|V/i.test(agroZone);
+
+            responseText = language === "sn"
+
+                ? dryZone
+                    ? `Nzvimbo yako iri mu${agroZone}. Zvirimwa zvidiki zvakaita semhunga nemapfunde zvinogona kuva sarudzo dzakanaka munzvimbo dzinonaya mvura shoma. FarmBright inoshandisa ruzivo rwevhu nenzvimbo kutsigira kurudziro.`
+                    : `FarmBright inogona kukubatsira kusarudza mhunga, mapfunde, rukweza kana rapoko zvichienderana nemamiriro evhu, nzvimbo uye mvura. Agro-ecological zone yako ndeye ${agroZone}.`
+
+                : dryZone
+                    ? `Your selected location falls within ${agroZone}. Drought-tolerant small grains such as sorghum and pearl millet are useful candidate crops to consider. FarmBright uses soil and geographical context to support crop selection.`
+                    : `FarmBright supports crop choices including sorghum, pearl millet, finger millet and rapoko. Your selected agro-ecological zone is ${agroZone}. Soil, rainfall and local growing conditions should guide the final choice.`;
+        }
+
+        else {
+
+            responseText = language === "sn"
+                ? "Ndapota bvunza nezvembeu, fetereza, mvura, nguva yekudyara kana kurudziro yechirimwa."
+                : "Ask FarmBright about seed varieties, fertilizer, water requirements, planting seasons or suitable crops.";
+        }
+
+        // -----------------------------------------
+        // DISPLAY CHATBOT RESPONSE
+        // -----------------------------------------
+
+        document.getElementById("farmbright-response").textContent =
+            responseText;
+
+        document.getElementById("farmbright-intent").textContent =
+            intent.replaceAll("_", " ");
+
+        document.getElementById("farmbright-crop").textContent =
+            cropName;
+
+        document.getElementById("farmbright-area").textContent =
+            area !== null ? `${area} hectares` : "Not required for this question";
+
+        document.getElementById("farmbright-location").textContent =
+            synced.location ||
+            entities.location ||
+            currentLocation.address ||
+            "Not detected";
+
+        
+    } catch (error) {
+
+        console.error("FarmBright NLP error:", error);
+
+        resultBox.classList.add("hidden");
+
+        errorBox.textContent =
+            error.message ||
+            "Something went wrong while processing your question.";
+
+        errorBox.classList.remove("hidden");
+    }
+}
+
+</script>
+
+</body>
+</html>

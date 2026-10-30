@@ -1,0 +1,806 @@
+
+{% extends 'planner/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="pt-20 pb-16">
+    <div class="container mx-auto px-4">
+
+        <h1 class="text-4xl font-display font-bold text-dark-green mb-3">
+            Farm Location Manager
+        </h1>
+
+        <p class="text-gray-600 mb-8">
+            Locate your farm, discover nearby agricultural suppliers,
+            and explore agro-dealers within 50 km.
+        </p>
+
+        <div class="grid lg:grid-cols-2 gap-8">
+
+            <!-- MAP AND LOCATION SEARCH -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+
+                <h2 class="text-2xl font-semibold text-primary-green mb-4">
+                    📍 Pin Your Farm Location
+                </h2>
+
+                <div class="mb-4">
+                    <label class="block text-gray-700 mb-2" for="farm-name">
+                        Farm Name
+                    </label>
+                    <input
+                        type="text"
+                        id="farm-name"
+                        placeholder="My Farm"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                    >
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-gray-700 mb-2"
+                           for="location-search">
+                        Search a town, suburb, or location
+                    </label>
+
+                    <input
+                        type="text"
+                        id="location-search"
+                        placeholder="e.g. Masvingo, Harare, Bulawayo..."
+                        autocomplete="off"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                    >
+                </div>
+
+                <button
+                    type="button"
+                    id="use-my-location"
+                    class="w-full mb-3 bg-blue-700 hover:bg-blue-800
+                           text-white py-3 rounded-lg font-semibold"
+                >
+                    📡 Use My Location
+                </button>
+
+                <p id="location-status"
+                   class="text-sm text-gray-600 mb-4"
+                   role="status"
+                   aria-live="polite">
+                    Search for a place or use your current location.
+                </p>
+
+                <div id="map"
+                     style="height: 420px; border-radius: 12px;"
+                     class="mb-4">
+                </div>
+
+                <div class="p-4 rounded-xl bg-green-50 border border-green-200 mb-4">
+                    <p class="font-semibold text-green-900">
+                        🟢 50 km Agro-Dealer Search Radius
+                    </p>
+                    <p class="text-sm text-green-800 mt-1">
+                        The shaded circle shows the search area around
+                        your selected farm location.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    id="save-farm-location"
+                    class="w-full bg-primary-green hover:opacity-90
+                           text-white py-3 rounded-lg font-semibold"
+                >
+                    💾 Save Farm Location
+                </button>
+            </div>
+
+            <!-- NEARBY AGRO-DEALERS -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+
+                <h2 class="text-2xl font-semibold text-primary-green mb-2">
+                    🏪 Nearby Agro-Dealers
+                </h2>
+
+                <p class="text-sm text-gray-600 mb-4">
+                    FarmBright's registered agro-dealer database,
+                    ordered by distance from your selected location.
+                </p>
+
+                <div id="dealer-summary"
+                     class="mb-4 p-3 bg-green-50 rounded-lg text-green-900"
+                     role="status"
+                     aria-live="polite">
+                    Loading nearby agro-dealers...
+                </div>
+
+                <div id="nearby-dealers" class="space-y-4">
+                    <p class="text-gray-500">
+                        Nearby suppliers will appear here.
+                    </p>
+                </div>
+
+                <p class="text-xs text-gray-500 mt-5">
+                    Note: FarmBright's displayed business information
+                    may not reflect current stock or opening hours.
+                    Contact a supplier to confirm availability.
+                </p>
+
+            </div>
+        </div>
+
+        <!-- SAVED FARMS -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mt-8">
+
+            <h2 class="text-2xl font-semibold text-primary-green mb-4">
+                📋 Your Saved Farms
+            </h2>
+
+            <div id="saved-farms" class="space-y-3">
+                <p class="text-gray-500">Loading saved farms...</p>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places"></script>
+
+<script>
+"use strict";
+
+// --------------------------------------------------
+// FARM BRIGHT MAP CONFIGURATION
+// --------------------------------------------------
+
+const SEARCH_RADIUS_KM = 50;
+const SEARCH_RADIUS_METRES = SEARCH_RADIUS_KM * 1000;
+
+const DEFAULT_LOCATION = {
+    lat: -17.824858,
+    lng: 31.053028
+};
+
+let map;
+let marker;
+let radiusCircle;
+let geocoder;
+
+let agroDealerMarkers = new Map();
+let agroDealerInfoWindows = new Map();
+let savedFarms = [];
+let currentDealers = [];
+
+
+// --------------------------------------------------
+// SAFE HTML DISPLAY
+// --------------------------------------------------
+
+function escapeHtml(value) {
+    const replacements = {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    };
+
+    return String(value ?? "").replace(
+        /[&<>"']/g,
+        character => replacements[character]
+    );
+}
+
+
+// --------------------------------------------------
+// STATUS MESSAGE
+// --------------------------------------------------
+
+function setLocationStatus(message) {
+    document.getElementById("location-status").textContent = message;
+}
+
+
+// --------------------------------------------------
+// INITIALISE THE MAP
+// --------------------------------------------------
+
+function initMap() {
+    map = new google.maps.Map(
+        document.getElementById("map"),
+        {
+            center: DEFAULT_LOCATION,
+            zoom: 9,
+            mapTypeId: google.maps.MapTypeId.SATELLITE,
+            mapTypeControl: true,
+            streetViewControl: false,
+            fullscreenControl: true
+        }
+    );
+
+    geocoder = new google.maps.Geocoder();
+
+    marker = new google.maps.Marker({
+        map: map,
+        draggable: true,
+        position: DEFAULT_LOCATION,
+        title: "Selected farm location"
+    });
+
+    // Show the 50 km search area.
+    radiusCircle = new google.maps.Circle({
+        map: map,
+        center: DEFAULT_LOCATION,
+        radius: SEARCH_RADIUS_METRES,
+        fillColor: "#16a34a",
+        fillOpacity: 0.08,
+        strokeColor: "#15803d",
+        strokeOpacity: 0.8,
+        strokeWeight: 2,
+        clickable: false
+    });
+
+    // Search towns and locations.
+    const searchInput = document.getElementById("location-search");
+
+    const searchBox = new google.maps.places.SearchBox(searchInput);
+
+    map.addListener("bounds_changed", () => {
+        searchBox.setBounds(map.getBounds());
+    });
+
+    searchBox.addListener("places_changed", async () => {
+        const places = searchBox.getPlaces();
+
+        if (!places || !places.length) {
+            setLocationStatus("Choose a location from the search suggestions.");
+            return;
+        }
+
+        const place = places[0];
+
+        if (!place.geometry || !place.geometry.location) {
+            setLocationStatus("The selected place has no usable map location.");
+            return;
+        }
+
+        const location = place.geometry.location;
+
+        const label =
+            place.formatted_address ||
+            place.name ||
+            searchInput.value;
+
+        searchInput.value = label;
+
+        await moveToLocation(
+            location.lat(),
+            location.lng(),
+            label
+        );
+    });
+
+    // Recalculate the nearby dealers when the pin is dragged.
+    marker.addListener("dragend", async () => {
+        const position = marker.getPosition();
+
+        if (!position) return;
+
+        await moveToLocation(
+            position.lat(),
+            position.lng(),
+            null
+        );
+
+        reverseGeocodeLocation(position.lat(), position.lng());
+    });
+
+    // Initial default location.
+    moveToLocation(
+        DEFAULT_LOCATION.lat,
+        DEFAULT_LOCATION.lng,
+        "Harare"
+    );
+}
+
+
+// --------------------------------------------------
+// SELECT A FARM LOCATION
+// --------------------------------------------------
+
+async function moveToLocation(lat, lng, label = null) {
+    lat = Number(lat);
+    lng = Number(lng);
+
+    if (
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lng) ||
+        lat < -90 ||
+        lat > 90 ||
+        lng < -180 ||
+        lng > 180
+    ) {
+        setLocationStatus("This location has invalid coordinates.");
+        return;
+    }
+
+    const position = { lat, lng };
+
+    marker.setPosition(position);
+    map.setCenter(position);
+    map.setZoom(9);
+
+    radiusCircle.setCenter(position);
+
+    if (label) {
+        document.getElementById("location-search").value = label;
+    }
+
+    setLocationStatus(
+        `Selected location: ${lat.toFixed(5)}, ${lng.toFixed(5)}. Searching within 50 km...`
+    );
+
+    await fetchNearbyAgroDealers(lat, lng);
+}
+
+
+// --------------------------------------------------
+// USE THE FARMER'S CURRENT GPS LOCATION
+// --------------------------------------------------
+
+function useMyLocation() {
+    if (!navigator.geolocation) {
+        setLocationStatus(
+            "Your browser does not support location services."
+        );
+        return;
+    }
+
+    setLocationStatus(
+        "Requesting your location. Please allow location access in your browser."
+    );
+
+    navigator.geolocation.getCurrentPosition(
+        async position => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            await moveToLocation(lat, lng, "My current location");
+
+            reverseGeocodeLocation(lat, lng);
+        },
+
+        error => {
+            let message = "Unable to obtain your location.";
+
+            if (error.code === error.PERMISSION_DENIED) {
+                message =
+                    "Location access was denied. Allow location permission or search for your town.";
+            } else if (error.code === error.POSITION_UNAVAILABLE) {
+                message =
+                    "Your current location is unavailable. Try searching for your town.";
+            } else if (error.code === error.TIMEOUT) {
+                message =
+                    "The location request timed out. Please try again.";
+            }
+
+            setLocationStatus(message);
+        },
+
+        {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 60000
+        }
+    );
+}
+
+
+// --------------------------------------------------
+// TURN GPS COORDINATES INTO A READABLE ADDRESS
+// --------------------------------------------------
+
+function reverseGeocodeLocation(lat, lng) {
+    geocoder.geocode({
+        location: {
+            lat: Number(lat),
+            lng: Number(lng)
+        }
+    }).then(({ results }) => {
+        if (results && results.length) {
+            document.getElementById("location-search").value =
+                results[0].formatted_address;
+        }
+    }).catch(error => {
+        console.warn("Reverse geocoding was unsuccessful:", error);
+    });
+}
+
+
+// --------------------------------------------------
+// CLEAR OLD SHOP MARKERS
+// --------------------------------------------------
+
+function clearAgroDealerMarkers() {
+    agroDealerMarkers.forEach(shopMarker => {
+        shopMarker.setMap(null);
+    });
+
+    agroDealerInfoWindows.forEach(infoWindow => {
+        infoWindow.close();
+    });
+
+    agroDealerMarkers.clear();
+    agroDealerInfoWindows.clear();
+}
+
+
+// --------------------------------------------------
+// GET NEARBY SHOPS FROM THE DJANGO API
+// --------------------------------------------------
+
+async function fetchNearbyAgroDealers(lat, lng) {
+    const summary = document.getElementById("dealer-summary");
+    const container = document.getElementById("nearby-dealers");
+
+    summary.textContent = "Searching for agro-dealers within 50 km...";
+    container.innerHTML = "";
+
+    try {
+        const url =
+            `/api/agro-dealers/?latitude=${encodeURIComponent(lat)}` +
+            `&longitude=${encodeURIComponent(lng)}` +
+            `&radius=${SEARCH_RADIUS_KM}`;
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(`Agro-dealer API returned HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || "The agro-dealer search failed.");
+        }
+
+        clearAgroDealerMarkers();
+
+        currentDealers = data.dealers || [];
+
+        summary.textContent =
+            `Found ${data.count} agro-dealer(s) within ${data.radius_km} km.`;
+
+        if (!currentDealers.length) {
+            container.innerHTML = `
+                <div class="p-4 rounded-xl bg-yellow-50 border border-yellow-200">
+                    <p class="font-semibold text-yellow-900">
+                        No registered agro-dealers found within 50 km.
+                    </p>
+                    <p class="text-sm text-yellow-800 mt-1">
+                        Try another location. The database may not yet
+                        include every agricultural supplier.
+                    </p>
+                </div>
+            `;
+            return;
+        }
+
+        currentDealers.forEach(dealer => {
+            const shopPosition = {
+                lat: Number(dealer.latitude),
+                lng: Number(dealer.longitude)
+            };
+
+            const shopMarker = new google.maps.Marker({
+                map: map,
+                position: shopPosition,
+                title: dealer.name,
+                icon: {
+                    url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png"
+                },
+                zIndex: 10
+            });
+
+            const phoneHtml = dealer.phone
+                ? `<p class="mt-1">☎️ ${escapeHtml(dealer.phone)}</p>`
+                : "";
+
+            const websiteHtml = dealer.website
+                ? `<p class="mt-1">🌐 <a href="${escapeHtml(dealer.website)}"
+                     target="_blank" rel="noopener noreferrer">Website</a></p>`
+                : "";
+
+            const infoWindow = new google.maps.InfoWindow({
+                content: `
+                    <div style="max-width:280px; padding:5px;">
+                        <h3 style="font-size:16px;font-weight:bold;color:#166534;margin-bottom:8px;">
+                            🏪 ${escapeHtml(dealer.name)}
+                        </h3>
+
+                        <p>📍 ${escapeHtml(dealer.city)}, ${escapeHtml(dealer.province)}</p>
+                        <p>🛣️ ${escapeHtml(dealer.address || "Address not provided")}</p>
+                        <p style="margin-top:6px;">🌱 ${escapeHtml(dealer.dealer_type || "Agricultural supplier")}</p>
+                        <p style="margin-top:6px;">📦 ${escapeHtml(dealer.products || "Products not listed")}</p>
+                        ${phoneHtml}
+                        ${websiteHtml}
+                        <p style="margin-top:8px;font-weight:bold;color:#15803d;">
+                            📏 ${Number(dealer.distance_km).toFixed(2)} km away
+                        </p>
+                    </div>
+                `
+            });
+
+            shopMarker.addListener("click", () => {
+                agroDealerInfoWindows.forEach(window => window.close());
+
+                infoWindow.open({
+                    map: map,
+                    anchor: shopMarker
+                });
+            });
+
+            agroDealerMarkers.set(Number(dealer.id), shopMarker);
+            agroDealerInfoWindows.set(Number(dealer.id), infoWindow);
+        });
+
+        renderNearbyDealerList(currentDealers);
+
+    } catch (error) {
+        console.error("Agro-dealer search failed:", error);
+
+        summary.textContent = "Unable to load the agro-dealer results.";
+
+        container.innerHTML = `
+            <div class="p-4 bg-red-50 border border-red-200 rounded-xl">
+                <p class="font-semibold text-red-800">
+                    Agro-dealers could not be loaded.
+                </p>
+                <p class="text-sm text-red-700 mt-1">
+                    Check your connection and try searching again.
+                </p>
+            </div>
+        `;
+    }
+}
+
+
+// --------------------------------------------------
+// DISPLAY THE SHOP LIST
+// --------------------------------------------------
+
+function renderNearbyDealerList(dealers) {
+    const container = document.getElementById("nearby-dealers");
+
+    container.innerHTML = dealers.map(dealer => `
+        <div class="p-4 border border-gray-200 rounded-xl hover:border-green-400">
+            <div class="flex justify-between items-start gap-3">
+                <h3 class="font-bold text-green-900">
+                    🏪 ${escapeHtml(dealer.name)}
+                </h3>
+
+                <span class="text-sm font-semibold text-green-700 whitespace-nowrap">
+                    ${Number(dealer.distance_km).toFixed(2)} km
+                </span>
+            </div>
+
+            <p class="text-sm text-gray-600 mt-2">
+                📍 ${escapeHtml(dealer.city)}, ${escapeHtml(dealer.province)}
+            </p>
+
+            <p class="text-sm text-gray-600 mt-1">
+                ${escapeHtml(dealer.address || "Address not provided")}
+            </p>
+
+            <p class="text-sm text-gray-700 mt-2">
+                🌱 ${escapeHtml(dealer.dealer_type || "Agricultural supplier")}
+            </p>
+
+            <p class="text-sm text-gray-600 mt-1">
+                📦 ${escapeHtml(dealer.products || "Products not listed")}
+            </p>
+
+            ${dealer.phone
+                ? `<p class="text-sm text-gray-600 mt-1">☎️ ${escapeHtml(dealer.phone)}</p>`
+                : ""}
+
+            <button
+                type="button"
+                class="show-dealer-btn mt-3 px-4 py-2 rounded-lg bg-green-700
+                       hover:bg-green-800 text-white text-sm font-semibold"
+                data-dealer-id="${Number(dealer.id)}"
+            >
+                📍 Show on Map
+            </button>
+        </div>
+    `).join("");
+
+    container.querySelectorAll(".show-dealer-btn").forEach(button => {
+        button.addEventListener("click", () => {
+            const dealerId = Number(button.dataset.dealerId);
+
+            const shopMarker = agroDealerMarkers.get(dealerId);
+            const infoWindow = agroDealerInfoWindows.get(dealerId);
+
+            if (!shopMarker || !infoWindow) return;
+
+            agroDealerInfoWindows.forEach(window => window.close());
+
+            map.panTo(shopMarker.getPosition());
+            map.setZoom(14);
+
+            infoWindow.open({
+                map: map,
+                anchor: shopMarker
+            });
+        });
+    });
+}
+
+
+// --------------------------------------------------
+// SAVE THE SELECTED FARM
+// --------------------------------------------------
+
+async function saveFarmLocation() {
+    const position = marker.getPosition();
+
+    if (!position) {
+        alert("Please choose a farm location first.");
+        return;
+    }
+
+    const farmName =
+        document.getElementById("farm-name").value.trim() || "My Farm";
+
+    const address =
+        document.getElementById("location-search").value.trim() ||
+        `Coordinates: ${position.lat()}, ${position.lng()}`;
+
+    const csrfToken = "{{ csrf_token }}";
+
+    try {
+        const response = await fetch("/save-location/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken
+            },
+            body: JSON.stringify({
+                name: farmName,
+                latitude: position.lat(),
+                longitude: position.lng(),
+                address: address
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || "Could not save the farm location.");
+        }
+
+        alert("Farm location saved successfully! 🌱");
+        await loadSavedFarms();
+
+    } catch (error) {
+        console.error("Saving farm location failed:", error);
+        alert("Unable to save this farm. Please log in if required and try again.");
+    }
+}
+
+
+// --------------------------------------------------
+// LOAD SAVED FARMS
+// --------------------------------------------------
+
+async function loadSavedFarms() {
+    const container = document.getElementById("saved-farms");
+
+    try {
+        const response = await fetch("/get-locations/");
+
+        if (!response.ok) {
+            throw new Error("Could not retrieve saved locations.");
+        }
+
+        const data = await response.json();
+
+        savedFarms = data.locations || [];
+
+        if (!savedFarms.length) {
+            container.innerHTML = `
+                <p class="text-gray-500">
+                    No farms saved yet. Select a location and save your farm.
+                </p>
+            `;
+            return;
+        }
+
+        container.innerHTML = savedFarms.map(farm => `
+            <div class="p-4 bg-green-50 rounded-xl border border-green-200">
+                <h3 class="font-semibold text-green-900">
+                    ${escapeHtml(farm.name)}
+                </h3>
+
+                <p class="text-sm text-green-800 mt-1">
+                    ${escapeHtml(farm.address || "Address not provided")}
+                </p>
+
+                <p class="text-xs text-gray-600 mt-1">
+                    Lat: ${Number(farm.lat).toFixed(5)},
+                    Lng: ${Number(farm.lng).toFixed(5)}
+                </p>
+
+                <button
+                    type="button"
+                    class="use-saved-farm mt-3 px-4 py-2 rounded-lg
+                           bg-green-700 text-white text-sm font-semibold"
+                    data-farm-id="${Number(farm.id)}"
+                >
+                    Use This Farm
+                </button>
+            </div>
+        `).join("");
+
+        container.querySelectorAll(".use-saved-farm").forEach(button => {
+            button.addEventListener("click", async () => {
+                const farm = savedFarms.find(
+                    item => Number(item.id) === Number(button.dataset.farmId)
+                );
+
+                if (!farm) return;
+
+                document.getElementById("farm-name").value = farm.name || "";
+                document.getElementById("location-search").value =
+                    farm.address || "";
+
+                await moveToLocation(
+                    farm.lat,
+                    farm.lng,
+                    farm.address || farm.name
+                );
+
+                document.getElementById("map").scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
+            });
+        });
+
+    } catch (error) {
+        console.error("Loading saved farms failed:", error);
+
+        container.innerHTML = `
+            <p class="text-gray-600">
+                Saved farms could not be loaded. Sign in if authentication is required.
+            </p>
+        `;
+    }
+}
+
+
+// --------------------------------------------------
+// BUTTONS AND PAGE STARTUP
+// --------------------------------------------------
+
+document.getElementById("use-my-location").addEventListener(
+    "click",
+    useMyLocation
+);
+
+document.getElementById("save-farm-location").addEventListener(
+    "click",
+    saveFarmLocation
+);
+
+window.addEventListener("load", () => {
+    if (typeof google === "undefined" || !google.maps) {
+        setLocationStatus(
+            "Google Maps did not load. Check your Maps API key and enabled services."
+        );
+        return;
+    }
+
+    initMap();
+    loadSavedFarms();
+});
+</script>
+{% endblock %}

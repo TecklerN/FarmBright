@@ -1,0 +1,269 @@
+<!-- planner/templates/planner/home.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FarmBright - Smart Agriculture Solutions</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Alpine.js for interactivity -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-green: #2b6a3a;
+            --dark-green: #1a4d2a;
+            --gold-accent: #d4af37;
+            --cream-bg: #f8f5f0;
+            --light-green: #e8f5e9;
+        }
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+        }
+        
+        .display-font {
+            font-family: 'Playfair Display', serif;
+        }
+        
+        .hero-slide {
+            transition: opacity 1.5s ease-in-out;
+        }
+    </style>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-green': '#2b6a3a',
+                        'dark-green': '#1a4d2a',
+                        'gold-accent': '#d4af37',
+                        'cream-bg': '#f8f5f0',
+                        'light-green': '#e8f5e9',
+                    },
+                    fontFamily: {
+                        'display': ['Playfair Display', 'serif'],
+                        'body': ['Montserrat', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-cream-bg">
+    <!-- Navigation -->
+    <nav class="fixed w-full bg-white bg-opacity-95 shadow-md py-4 z-50">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <a href="{% url 'planner:home' %}" class="text-2xl font-display text-primary-green font-bold">Farm<span class="text-gold-accent">Bright</span></a>
+            
+            <div class="hidden md:flex space-x-8">
+                <a href="{% url 'planner:home' %}" class="text-dark-green font-semibold hover:text-gold-accent transition duration-300">Home</a>
+                <a href="{% url 'planner:plan' %}" class="text-dark-green font-semibold hover:text-gold-accent transition duration-300">Calculator</a>
+                <a href="#resources" class="text-dark-green font-semibold hover:text-gold-accent transition duration-300">Resources</a>
+                <a href="#about" class="text-dark-green font-semibold hover:text-gold-accent transition duration-300">About</a>
+            </div>
+            
+            <a href="{% url 'planner:plan' %}" class="bg-primary-green text-white px-6 py-2 rounded-lg hover:bg-dark-green transition duration-300 font-semibold">Get Started</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section with Image Slider -->
+    <section x-data="{ currentSlide: 1, slides: 3 }" class="relative h-screen">
+        <!-- Slide 1 -->
+        <div x-show="currentSlide === 1" x-transition:enter="transition ease-out duration-1000" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" 
+             class="absolute inset-0 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')">
+            <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <div class="text-center text-white px-4">
+                    <h1 class="text-5xl md:text-7xl font-display font-bold mb-6 animate-fade-in">Precision Agriculture</h1>
+                    <p class="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">Maximize your crop yield with our intelligent farming calculators and resources</p>
+                    <a href="{% url 'planner:plan' %}" class="bg-gold-accent text-primary-green px-8 py-4 rounded-lg text-lg font-semibold hover:bg-opacity-90 transition duration-300 inline-block">Start Planning</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slide 2 -->
+        <div x-show="currentSlide === 2" x-transition:enter="transition ease-out duration-1000" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" 
+             class="absolute inset-0 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1625246333193-4c6ed141d1af?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')">
+            <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <div class="text-center text-white px-4">
+                    <h1 class="text-5xl md:text-7xl font-display font-bold mb-6">Smart Calculations</h1>
+                    <p class="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">Accurate seed, fertilizer, and water requirements for optimal growth</p>
+                    <a href="{% url 'planner:plan' %}" class="bg-gold-accent text-primary-green px-8 py-4 rounded-lg text-lg font-semibold hover:bg-opacity-90 transition duration-300 inline-block">Calculate Now</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slide 3 -->
+        <div x-show="currentSlide === 3" x-transition:enter="transition ease-out duration-1000" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" 
+             class="absolute inset-0 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1586771107445-d3ca888129ce?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1171&q=80')">
+            <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <div class="text-center text-white px-4">
+                    <h1 class="text-5xl md:text-7xl font-display font-bold mb-6">Sustainable Farming</h1>
+                    <p class="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">Eco-friendly solutions for the modern agriculturalist</p>
+                    <a href="#resources" class="bg-gold-accent text-primary-green px-8 py-4 rounded-lg text-lg font-semibold hover:bg-opacity-90 transition duration-300 inline-block">Learn More</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slider controls -->
+        <div class="absolute bottom-8 left-0 right-0 flex justify-center space-x-3 z-10">
+            <template x-for="i in slides">
+                <button @click="currentSlide = i" :class="{ 'bg-gold-accent': currentSlide === i, 'bg-white bg-opacity-50': currentSlide !== i }" class="w-3 h-3 rounded-full transition duration-300"></button>
+            </template>
+        </div>
+        
+        <!-- Auto-advance slides -->
+        <script>
+            document.addEventListener('alpine:init', () => {
+                Alpine.data('slider', () => ({
+                    currentSlide: 1,
+                    slides: 3,
+                    init() {
+                        setInterval(() => {
+                            this.currentSlide = this.currentSlide % this.slides + 1;
+                        }, 5000);
+                    }
+                }));
+            });
+        </script>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-20 bg-white">
+        <div class="container mx-auto px-4">
+            <h2 class="text-4xl font-display font-bold text-center text-dark-green mb-16">Why Choose FarmBright?</h2>
+            
+            <div class="grid md:grid-cols-3 gap-10">
+                <!-- Feature 1 -->
+                <div class="bg-light-green p-8 rounded-2xl shadow-lg hover:shadow-xl transition duration-300">
+                    <div class="text-gold-accent text-5xl mb-6">🌱</div>
+                    <h3 class="text-2xl font-display font-semibold text-primary-green mb-4">Precision Calculation</h3>
+                    <p class="text-gray-700">Calculate exact seed and fertilizer requirements based on your field size, soil type, and crop variety.</p>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="bg-light-green p-8 rounded-2xl shadow-lg hover:shadow-xl transition duration-300">
+                    <div class="text-gold-accent text-5xl mb-6">📅</div>
+                    <h3 class="text-2xl font-display font-semibold text-primary-green mb-4">Seasonal Planning</h3>
+                    <p class="text-gray-700">Get personalized planting schedules and recommendations based on seasonal weather patterns.</p>
+                </div>
+                
+                <!-- Feature 3 -->
+                <div class="bg-light-green p-8 rounded-2xl shadow-lg hover:shadow-xl transition duration-300">
+                    <div class="text-gold-accent text-5xl mb-6">📊</div>
+                    <h3 class="text-2xl font-display font-semibold text-primary-green mb-4">Yield Optimization</h3>
+                    <p class="text-gray-700">Maximize your harvest with data-driven insights and proven agricultural techniques.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Resources Section -->
+    <section id="resources" class="py-20 bg-light-green">
+        <div class="container mx-auto px-4">
+            <h2 class="text-4xl font-display font-bold text-center text-dark-green mb-16">Farming Resources</h2>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Resource 1 -->
+                <div class="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition duration-300">
+                    <div class="h-48 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1599396170192-8987c5ca0c96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80')"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-display font-semibold text-primary-green mb-3">Planting Guides</h3>
+                        <p class="text-gray-700 mb-4">Detailed guides for different crops, including optimal planting times, spacing, and depth.</p>
+                        <a href="#" class="text-gold-accent font-semibold hover:underline inline-flex items-center">View Guides →</a>
+                    </div>
+                </div>
+                
+                <!-- Resource 2 -->
+                <div class="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition duration-300">
+                    <div class="h-48 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1625409464536-44e83f2b4b70?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80')"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-display font-semibold text-primary-green mb-3">Irrigation Methods</h3>
+                        <p class="text-gray-700 mb-4">Learn about efficient water management techniques for different soil types and crops.</p>
+                        <a href="#" class="text-gold-accent font-semibold hover:underline inline-flex items-center">Learn More →</a>
+                    </div>
+                </div>
+                
+                <!-- Add this somewhere in your home.html temporarily -->
+
+                <!-- Resource 3 -->
+                <div class="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition duration-300">
+                    <div class="h-48 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1560493676-7ee5d3c418d0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80')"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-display font-semibold text-primary-green mb-3">Pest Management</h3>
+                        <p class="text-gray-700 mb-4">Organic and sustainable methods to protect your crops from pests and diseases.</p>
+                        <a href="#" class="text-gold-accent font-semibold hover:underline inline-flex items-center">Explore Solutions →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer id="about" class="bg-dark-green text-white py-16">
+        <div class="container mx-auto px-4">
+            <div class="grid md:grid-cols-4 gap-10">
+                <div>
+                    <h3 class="text-2xl font-display font-bold text-gold-accent mb-6">FarmBright</h3>
+                    <p class="text-white text-opacity-80 mb-6">Precision agriculture tools for small-scale farmers. Maximize your yield with our intelligent planning calculators.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="w-10 h-10 rounded-full bg-white bg-opacity-10 flex items-center justify-center hover:bg-gold-accent transition duration-300">📱</a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-white bg-opacity-10 flex items-center justify-center hover:bg-gold-accent transition duration-300">📱</a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-white bg-opacity-10 flex items-center justify-center hover:bg-gold-accent transition duration-300">📱</a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-6">Quick Links</h4>
+                    <ul class="space-y-3">
+                        <li><a href="{% url 'planner:home' %}" class="text-white text-opacity-80 hover:text-gold-accent transition duration-300">Home</a></li>
+                        <li><a href="{% url 'planner:plan' %}" class="text-white text-opacity-80 hover:text-gold-accent transition duration-300">Calculator</a></li>
+                        <li><a href="#resources" class="text-white text-opacity-80 hover:text-gold-accent transition duration-300">Resources</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-6">Crop Resources</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-white text-opacity-80 hover:text-gold-accent transition duration-300">Maize Farming</a></li>
+                        <li><a href="#" class="text-white text-opacity-80 hover:text-gold-accent transition duration-300">Wheat Cultivation</a></li>
+                        <li><a href="#" class="text-white text-opacity-80 hover:text-gold-accent transition duration-300">Rice Farming</a></li>
+                        <li><a href="#" class="text-white text-opacity-80 hover:text-gold-accent transition duration-300">Rapoko Guide</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-6">Contact Us</h4>
+                    <address class="not-italic text-white text-opacity-80">
+                        <p class="mb-3">123 Farm Road, Agricultural District</p>
+                        <p class="mb-3">Harare, Zimbabwe</p>
+                        <p class="mb-3">+263 777 306 439</p>
+                        <p class="mb-3">info@farmbright.com</p>
+                    </address>
+                </div>
+            </div>
+            
+            <div class="border-t border-white border-opacity-20 mt-12 pt-8 text-center text-white text-opacity-60">
+                <p>&copy; 2023 FarmBright. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
